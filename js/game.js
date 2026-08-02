@@ -1,5 +1,6 @@
-// ===== game.js — Main game controller (bulletproof) =====
-// All DOM access is null-safe. Player ID = network.myId (single source of truth).
+// ===== game.js — Main game controller v2 =====
+// WASD/Arrow movement, pathfinding, character sheet, inventory, combat tracker,
+// quick actions, sound effects, toast notifications, minimap, keyboard shortcuts
 
 const app = {
     network: null, map: null, ai: null,
@@ -9,16 +10,26 @@ const app = {
     charData: null, campaignTheme: '',
     voiceEnabled: false, micEnabled: true,
     voiceStream: null, audioContext: null, analyser: null,
-    tutorialStep: 0, aiBusy: false, campaignStarted: false
+    tutorialStep: 0, aiBusy: false, campaignStarted: false,
+    // New systems
+    inventory: [], gold: 0,
+    combatActive: false, combatRound: 1, combatTurn: 0, combatOrder: [],
+    hp: 10, maxHp: 10, ac: 10, level: 1, xp: 0,
+    soundEnabled: true, soundCtx: null,
+    minimapVisible: false,
+    keysDown: new Set(),
+    lastMoveTime: 0,
+    moveCooldown: 150, // ms between WASD moves
 };
 
 const TUTORIAL = [
     { title: '⚔️ Добро пожаловать!', text: 'Это D&D Online — игра с ИИ Мастером Подземелий. Давайте быстро разберёмся!', icon: '🎮' },
-    { title: '🗺️ Карта', text: 'Слева — карта. ЛКМ — переместить персонажа. Колёсико — зум. Ctrl+ЛКМ — двигать камеру.', icon: '🗺️' },
+    { title: '🗺️ Карта и движение', text: 'WASD или стрелки — двигать персонажа. ЛКМ — идти по пути. Колёсико — зум. Ctrl+ЛКМ — двигать камеру. Камера следует за вами!', icon: '🗺️' },
     { title: '💬 Чат и действия', text: 'Пишите действия в чат: "Осматриваю комнату", "Атакую гоблина". ИИ Ведущий ответит!', icon: '💬' },
-    { title: '⚔️ Выборы', text: 'ИИ предложит варианты действий — кликните на вариант!', icon: '⚔️' },
-    { title: '🎲 Кубики', text: '/roll 1d20+5 — бросить кубик. ИИ тоже бросает автоматически.', icon: '🎲' },
-    { title: '🎤 Голос', text: 'Нажмите 🎤 вверху чтобы включить голос. Потом 🎙️ — вкл/выкл микрофон. Пока только индикаторы, не аудио.', icon: '🎤' },
+    { title: '⚔️ Быстрые действия', text: 'Внизу карты — панель быстрых действий: Атака, Защита, Проверка навыка, Заклинание и другие. Или нажмите клавиши A, D, S, Z, H, F, T, G, R.', icon: '⚔️' },
+    { title: '👤 Лист персонажа', text: 'Нажмите 👤 или C — открыть лист персонажа. Там HP, AC, характеристики, инвентарь. 🎒 или I — инвентарь. ⚔️ или B — трекер боя.', icon: '👤' },
+    { title: '🎲 Кубики', text: '/roll 1d20+5 — бросить кубик. Результат влияет на историю! ИИ тоже бросает автоматически.', icon: '🎲' },
+    { title: '📌 Мини-карта', text: 'Нажмите 📌 или M — показать мини-карту. Помогает ориентироваться! ? — показать все горячие клавиши.', icon: '📌' },
     { title: '✅ Готово!', text: 'Пишите в чат — и приключение начнётся! /help — помощь. Удачи! 🎲', icon: '🎉' }
 ];
 
@@ -26,18 +37,14 @@ const TUTORIAL = [
 function $(id) { return document.getElementById(id); }
 
 // ===== ERROR HANDLER =====
-window.onerror = function(msg, url, line) {
-    console.error('JS Error:', msg, line);
-};
+window.onerror = function(msg, url, line) { console.error('JS Error:', msg, line); };
 
 document.addEventListener('DOMContentLoaded', () => {
     try { init(); }
     catch (e) {
         console.error('Init error:', e);
         document.body.innerHTML = '<div style="color:white;padding:40px;font-size:18px;">' +
-            '<h2>⚠️ Ошибка загрузки</h2>' +
-            '<p>' + e.message + '</p>' +
-            '<p style="color:#888;font-size:14px;">Строка: ' + (e.lineNumber || '?') + '</p>' +
+            '<h2>⚠️ Ошибка загрузки</h2><p>' + e.message + '</p>' +
             '<a href="lobby.html" style="color:#c9a84c">← Назад в лобби</a></div>';
     }
 });
@@ -55,10 +62,23 @@ function init() {
     app.isSolo = mode === 'solo';
     app.campaignTheme = sessionStorage.getItem('dnd-campaign') || 'custom';
 
+    // Calculate HP/AC from stats
+    if (app.charData && app.charData.stats) {
+        const con = app.charData.stats.CON || 10;
+        const dex = app.charData.stats.DEX || 10;
+        app.maxHp = 10 + Math.floor((con - 10) / 2);
+        app.hp = app.maxHp;
+        app.ac = 10 + Math.floor((dex - 10) / 2);
+    }
+
     // Init map
     const canvas = $('mapCanvas');
-    if (!canvas) throw new Error('Элемент mapCanvas не найден');
+    if (!canvas) throw new Error('mapCanvas не найден');
     app.map = new GameMap(canvas);
+
+    // Init minimap
+    const mmCanvas = $('minimapCanvas');
+    if (mmCanvas) app.map.initMinimap(mmCanvas);
 
     // Init AI
     app.ai = new AI_DM();
@@ -80,7 +100,7 @@ function init() {
         } catch (e) { }
     };
 
-    // AI typing indicator (null-safe)
+    // AI typing indicator
     app.ai.onTyping = (isTyping) => {
         app.aiBusy = isTyping;
         const el = $('typingIndicator');
@@ -100,6 +120,10 @@ function init() {
     setupTopBar();
     setupChat();
     setupTutorial();
+    setupKeyboard();
+    setupQuickActions();
+    setupPanels();
+    setupSound();
 
     // Init network
     app.network = new Network();
@@ -108,13 +132,11 @@ function init() {
         app.myId = app.network.myId;
         app.isHost = app.network.isHost;
 
-        // Add self (only once!)
         addPlayer(app.myId, app.myName, app.myColor, app.isHost, app.charData);
 
         app.map.myPlayerId = app.myId;
         app.map.isHost = app.isHost;
 
-        // Update UI
         const roomEl = $('roomDisplay');
         if (roomEl) roomEl.textContent = app.roomCode.toUpperCase();
         const modeEl = $('modeLabel');
@@ -151,6 +173,436 @@ function init() {
     }
 }
 
+// ===== SOUND SYSTEM =====
+function setupSound() {
+    try {
+        app.soundCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) { }
+}
+
+function playSound(type) {
+    if (!app.soundEnabled || !app.soundCtx) return;
+    try {
+        const ctx = app.soundCtx;
+        if (ctx.state === 'suspended') ctx.resume();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        switch (type) {
+            case 'dice':
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(800, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.2);
+                break;
+            case 'move':
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.05, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.08);
+                break;
+            case 'attack':
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(300, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.12, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.25);
+                break;
+            case 'heal':
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.35);
+                break;
+            case 'levelup':
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523, ctx.currentTime);
+                osc.frequency.setValueAtTime(659, ctx.currentTime + 0.15);
+                osc.frequency.setValueAtTime(784, ctx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.5);
+                break;
+            case 'toast':
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, ctx.currentTime);
+                gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.1);
+                break;
+            case 'damage':
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.25);
+                break;
+        }
+    } catch (e) { }
+}
+
+// ===== TOAST NOTIFICATIONS =====
+function showToast(message, type = 'info', duration = 3000) {
+    const container = $('toastContainer');
+    if (!container) return;
+    playSound('toast');
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
+    const icons = { info: 'ℹ️', success: '✅', warning: '⚠️', error: '❌', dice: '🎲', combat: '⚔️', loot: '💎' };
+    toast.innerHTML = '<span class="toast-icon">' + (icons[type] || 'ℹ️') + '</span><span class="toast-text">' + message + '</span>';
+    container.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('show'));
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+}
+
+// ===== KEYBOARD CONTROLS =====
+function setupKeyboard() {
+    document.addEventListener('keydown', e => {
+        // Don't handle if typing in input
+        if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+
+        app.keysDown.add(e.key);
+
+        // WASD / Arrow movement
+        const moveMap = {
+            'w': [0, -1], 'ArrowUp': [0, -1],
+            's': [0, 1], 'ArrowDown': [0, 1],
+            'a': [-1, 0], 'ArrowLeft': [-1, 0],
+            'd': [1, 0], 'ArrowRight': [1, 0],
+        };
+        if (moveMap[e.key]) {
+            e.preventDefault();
+            const now = Date.now();
+            if (now - app.lastMoveTime >= app.moveCooldown) {
+                const [dx, dy] = moveMap[e.key];
+                app.map.movePlayerStep(app.myId, dx, dy);
+                playSound('move');
+                app.lastMoveTime = now;
+            }
+            return;
+        }
+
+        // Panel toggles
+        switch (e.key.toLowerCase()) {
+            case 'c': toggleCharSheet(); break;
+            case 'i': toggleInventory(); break;
+            case 'b': toggleCombat(); break;
+            case 'm': toggleMinimap(); break;
+            case 'escape':
+                closeAllPanels();
+                break;
+            case '?':
+                showToast('WASD/↑↓←→ — движение | C — персонаж | I — инвентарь | B — бой | M — мини-карта | Shift+ЛКМ — рисовать | Enter — чат', 'info', 5000);
+                break;
+        }
+    });
+
+    document.addEventListener('keyup', e => {
+        app.keysDown.delete(e.key);
+    });
+}
+
+// ===== QUICK ACTIONS =====
+function setupQuickActions() {
+    document.querySelectorAll('.qa-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const action = btn.dataset.action;
+            const actions = {
+                attack: '⚔️ Атакую!',
+                defend: '🛡️ Защищаюсь!',
+                skill: '🎯 Проверка навыка: ',
+                cast: '✨ Применяю заклинание: ',
+                heal: '❤️ Лечусь!',
+                search: '🔍 Обыскиваю окрестности',
+                talk: '💬 Говорю с NPC: ',
+                stealth: '🥷 Двигаюсь скрытно',
+                rest: '🏕️ Отдыхаю'
+            };
+            const text = actions[action];
+            if (!text) return;
+
+            // Some actions need extra input
+            if (action === 'skill' || action === 'cast' || action === 'talk') {
+                const input = $('chatInput');
+                if (input) {
+                    input.value = text;
+                    input.focus();
+                    input.setSelectionRange(text.length, text.length);
+                }
+                return;
+            }
+
+            // Send to AI
+            playSound(action === 'attack' ? 'attack' : action === 'heal' ? 'heal' : 'toast');
+            addChatMessage(app.myName, text, app.myColor);
+            try { app.network.publish('chat', { name: app.myName, text, color: app.myColor }); } catch (e) { }
+            if (app.ai.apiKey) {
+                if (app.isHost) handleAIRequest(text, app.myName);
+                else try { app.network.publish('request-ai', { text, playerName: app.myName }); } catch (e) { }
+            }
+        });
+    });
+}
+
+// ===== PANELS =====
+function setupPanels() {
+    const charBtn = $('toggleCharSheet');
+    if (charBtn) charBtn.addEventListener('click', toggleCharSheet);
+    const closeChar = $('closeCharSheet');
+    if (closeChar) closeChar.addEventListener('click', () => toggleCharSheet());
+
+    const invBtn = $('toggleInventory');
+    if (invBtn) invBtn.addEventListener('click', toggleInventory);
+    const closeInv = $('closeInventory');
+    if (closeInv) closeInv.addEventListener('click', () => toggleInventory());
+
+    const combatBtn = $('toggleCombat');
+    if (combatBtn) combatBtn.addEventListener('click', toggleCombat);
+    const closeCombat = $('closeCombat');
+    if (closeCombat) closeCombat.addEventListener('click', () => toggleCombat());
+
+    const minimapBtn = $('toggleMinimap');
+    if (minimapBtn) minimapBtn.addEventListener('click', toggleMinimap);
+}
+
+function toggleCharSheet() {
+    const panel = $('charSheet');
+    if (!panel) return;
+    const isOpen = !panel.classList.contains('hidden');
+    if (isOpen) {
+        panel.classList.add('hidden');
+    } else {
+        closeAllPanels();
+        panel.classList.remove('hidden');
+        renderCharSheet();
+    }
+}
+
+function toggleInventory() {
+    const panel = $('inventoryPanel');
+    if (!panel) return;
+    const isOpen = !panel.classList.contains('hidden');
+    if (isOpen) {
+        panel.classList.add('hidden');
+    } else {
+        closeAllPanels();
+        panel.classList.remove('hidden');
+        renderInventory();
+    }
+}
+
+function toggleCombat() {
+    const panel = $('combatPanel');
+    if (!panel) return;
+    const isOpen = !panel.classList.contains('hidden');
+    if (isOpen) {
+        panel.classList.add('hidden');
+    } else {
+        closeAllPanels();
+        panel.classList.remove('hidden');
+        renderCombatTracker();
+    }
+}
+
+function toggleMinimap() {
+    const container = $('minimapContainer');
+    if (!container) return;
+    app.minimapVisible = !app.minimapVisible;
+    container.classList.toggle('hidden', !app.minimapVisible);
+    const btn = $('toggleMinimap');
+    if (btn) btn.classList.toggle('active', app.minimapVisible);
+    if (app.minimapVisible) {
+        app.map.minimapDirty = true;
+    }
+}
+
+function closeAllPanels() {
+    const cs = $('charSheet'); if (cs) cs.classList.add('hidden');
+    const inv = $('inventoryPanel'); if (inv) inv.classList.add('hidden');
+    const combat = $('combatPanel'); if (combat) combat.classList.add('hidden');
+}
+
+function renderCharSheet() {
+    const body = $('charSheetBody');
+    if (!body) return;
+    const cd = app.charData || {};
+    const stats = cd.stats || { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 };
+    const statNames = ['СИЛ', 'ЛОВ', 'ТЕЛ', 'ИНТ', 'МДР', 'ХАР'];
+    const statKeys = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+
+    const avatarHtml = cd.avatarUrl
+        ? '<img src="' + cd.avatarUrl + '" class="cs-avatar">'
+        : '<div class="cs-avatar cs-avatar-placeholder">🧙</div>';
+
+    const hpPercent = Math.max(0, Math.min(100, (app.hp / app.maxHp) * 100));
+    const hpColor = hpPercent > 60 ? 'var(--accent-green)' : hpPercent > 30 ? 'var(--accent-orange)' : 'var(--accent-red)';
+
+    body.innerHTML = `
+        <div class="cs-top">
+            ${avatarHtml}
+            <div class="cs-info">
+                <div class="cs-name">${app.myName}</div>
+                <div class="cs-race-class">${cd.race || 'Человек'} ${cd.class || 'Воин'}</div>
+                <div class="cs-background">${cd.background || 'Странник'}</div>
+            </div>
+        </div>
+        <div class="cs-hp-bar">
+            <div class="cs-hp-fill" style="width:${hpPercent}%;background:${hpColor}"></div>
+            <div class="cs-hp-text">❤️ ${app.hp} / ${app.maxHp}</div>
+        </div>
+        <div class="cs-ac-level">
+            <div class="cs-stat-big">🛡️ AC ${app.ac}</div>
+            <div class="cs-stat-big">⭐ Ур. ${app.level}</div>
+            <div class="cs-stat-big">✨ XP ${app.xp}</div>
+        </div>
+        <div class="cs-stats-grid">
+            ${statKeys.map((k, i) => {
+                const v = stats[k] || 10;
+                const mod = Math.floor((v - 10) / 2);
+                const modStr = mod >= 0 ? '+' + mod : '' + mod;
+                return `<div class="cs-stat-item">
+                    <div class="cs-stat-name">${statNames[i]}</div>
+                    <div class="cs-stat-val">${v}</div>
+                    <div class="cs-stat-mod">${modStr}</div>
+                </div>`;
+            }).join('')}
+        </div>
+        <div class="cs-actions">
+            <button class="cs-btn" onclick="modifyHP(-1)">− HP</button>
+            <button class="cs-btn" onclick="modifyHP(1)">+ HP</button>
+            <button class="cs-btn" onclick="addXP(10)">+ XP</button>
+            <button class="cs-btn" onclick="levelUp()">⬆ Уровень</button>
+        </div>
+    `;
+}
+
+function modifyHP(delta) {
+    app.hp = Math.max(0, Math.min(app.maxHp, app.hp + delta));
+    if (delta < 0) playSound('damage');
+    else if (delta > 0) playSound('heal');
+    if (app.hp <= 0) {
+        showToast('💀 Вы пали! HP = 0', 'error', 5000);
+    }
+    renderCharSheet();
+}
+
+function addXP(amount) {
+    app.xp += amount;
+    showToast('✨ +' + amount + ' XP!', 'success');
+    // Auto level up
+    if (app.xp >= app.level * 300) {
+        levelUp();
+    }
+    renderCharSheet();
+}
+
+function levelUp() {
+    app.level++;
+    app.maxHp += Math.floor(Math.random() * 6) + 4 + Math.floor(((app.charData?.stats?.CON || 10) - 10) / 2);
+    app.hp = app.maxHp;
+    playSound('levelup');
+    showToast('🎉 Уровень ' + app.level + '! HP: ' + app.maxHp, 'success', 4000);
+    renderCharSheet();
+}
+
+function renderInventory() {
+    const body = $('invBody');
+    if (!body) return;
+    const slots = $('invSlots');
+    const gold = $('invGold');
+    if (gold) gold.textContent = app.gold;
+
+    if (slots) {
+        if (app.inventory.length === 0) {
+            slots.innerHTML = '<div class="inv-empty">Инвентарь пуст. Обыщите сундуки или попросите ИИ!</div>';
+        } else {
+            slots.innerHTML = app.inventory.map((item, i) => `
+                <div class="inv-item" data-idx="${i}">
+                    <span class="inv-item-icon">${item.icon || '📦'}</span>
+                    <span class="inv-item-name">${item.name}</span>
+                    <span class="inv-item-desc">${item.desc || ''}</span>
+                    <button class="inv-use-btn" onclick="useItem(${i})">Исп.</button>
+                </div>
+            `).join('');
+        }
+    }
+}
+
+function addItem(name, icon, desc) {
+    app.inventory.push({ name, icon, desc });
+    showToast('💎 Получено: ' + name, 'loot');
+    renderInventory();
+}
+
+function useItem(idx) {
+    if (idx < 0 || idx >= app.inventory.length) return;
+    const item = app.inventory[idx];
+    const text = 'Использую: ' + item.name;
+    addChatMessage(app.myName, text, app.myColor);
+    try { app.network.publish('chat', { name: app.myName, text, color: app.myColor }); } catch (e) { }
+    if (app.ai.apiKey) {
+        if (app.isHost) handleAIRequest(text, app.myName);
+        else try { app.network.publish('request-ai', { text, playerName: app.myName }); } catch (e) { }
+    }
+    // Remove after use
+    app.inventory.splice(idx, 1);
+    renderInventory();
+}
+
+function renderCombatTracker() {
+    const body = $('combatBody');
+    if (!body) return;
+    const round = $('combatRound');
+    if (round) round.textContent = app.combatRound;
+
+    const order = $('combatTurnOrder');
+    if (order) {
+        const entries = [];
+        // Players
+        for (const [id, p] of Object.entries(app.players)) {
+            const isMe = id === app.myId;
+            entries.push({
+                name: p.name, type: 'player', hp: isMe ? app.hp : '?',
+                maxHp: isMe ? app.maxHp : '?', ac: isMe ? app.ac : '?', color: p.color, isMe
+            });
+        }
+        // NPCs
+        for (const [id, n] of Object.entries(app.map.npcs)) {
+            entries.push({ name: n.name, type: n.type, hp: n.hp || '?', maxHp: '?', ac: '?', color: n.type === 'enemy' ? '#e74c3c' : n.type === 'boss' ? '#9b59b6' : n.type === 'ally' ? '#27ae60' : '#2980b9' });
+        }
+
+        order.innerHTML = entries.map((e, i) => `
+            <div class="combat-entry ${e.isMe ? 'combat-self' : ''} ${e.type}">
+                <span class="combat-entry-dot" style="background:${e.color}"></span>
+                <span class="combat-entry-name">${e.name}</span>
+                <span class="combat-entry-hp">❤️${e.hp}/${e.maxHp}</span>
+                <span class="combat-entry-ac">🛡️${e.ac}</span>
+                ${e.isMe ? `<button class="combat-hp-btn" onclick="modifyHP(-1)">−</button><button class="combat-hp-btn" onclick="modifyHP(1)">+</button>` : ''}
+            </div>
+        `).join('');
+    }
+}
+
 // ===== SETUP (all null-safe) =====
 function setupMapTools() {
     const btn = $('toggleMapTools');
@@ -176,27 +628,24 @@ function setupMapTools() {
             for (let y = 0; y < app.map.gridH; y++)
                 for (let x = 0; x < app.map.gridW; x++) app.map.fogMap[y][x] = false;
         }
-        app.map.render();
+        app.map.minimapDirty = true;
     });
 
     const genBtn = $('generateMap');
     if (genBtn) genBtn.addEventListener('click', () => {
-        const m = $('genModal');
-        if (m) m.classList.remove('hidden');
+        const m = $('genModal'); if (m) m.classList.remove('hidden');
     });
 
     const closeBtn = $('closeGenModal');
     if (closeBtn) closeBtn.addEventListener('click', () => {
-        const m = $('genModal');
-        if (m) m.classList.add('hidden');
+        const m = $('genModal'); if (m) m.classList.add('hidden');
     });
 
     document.querySelectorAll('.gen-btn').forEach(b => {
         b.addEventListener('click', () => {
             app.map.generate(b.dataset.gen);
             try { app.network.publish('map', { map: app.map.map }); } catch (e) { }
-            const m = $('genModal');
-            if (m) m.classList.add('hidden');
+            const m = $('genModal'); if (m) m.classList.add('hidden');
             addSystemMessage('🗺️ Карта: ' + b.textContent);
         });
     });
@@ -205,7 +654,7 @@ function setupMapTools() {
 function setupTopBar() {
     const roomEl = $('roomDisplay');
     if (roomEl) roomEl.addEventListener('click', () => {
-        navigator.clipboard.writeText(roomEl.textContent).then(() => addSystemMessage('📋 Скопировано'));
+        navigator.clipboard.writeText(roomEl.textContent).then(() => showToast('📋 Скопировано!', 'success'));
     });
 
     const voiceBtn = $('toggleVoice');
@@ -275,14 +724,11 @@ function handleNetMessage(msg) {
                 if (msg.playerId && msg.playerId !== app.myId) {
                     addPlayer(msg.playerId, msg.name, msg.color, false, msg.charData || null);
                     addSystemMessage('👋 ' + msg.name + ' присоединился!');
+                    showToast('👋 ' + msg.name + ' присоединился!', 'info');
                     updateConnectionCount();
                     if (app.isHost) {
                         setTimeout(() => {
-                            app.network.publish('state', {
-                                map: app.map.map,
-                                players: app.map.players,
-                                targetPlayer: msg.playerId
-                            });
+                            app.network.publish('state', { map: app.map.map, players: app.map.players, targetPlayer: msg.playerId });
                         }, 500);
                     }
                 }
@@ -292,7 +738,6 @@ function handleNetMessage(msg) {
                     const name = app.players[msg.playerId].name;
                     removePlayer(msg.playerId);
                     addSystemMessage('👋 ' + name + ' покинул игру.');
-                    updateConnectionCount();
                 }
                 break;
             case 'state':
@@ -306,7 +751,6 @@ function handleNetMessage(msg) {
                                 app.playerOrder.push(id);
                             }
                         }
-                        app.map.render();
                     }
                     addSystemMessage('📥 Данные загружены!');
                 }
@@ -337,7 +781,6 @@ function handleNetMessage(msg) {
                     updateVoiceUsers();
                 }
                 break;
-
             case 'npc':
                 if (msg.action === 'add') app.map.addNPC('npc_' + msg.name, msg.name, msg.x, msg.y, msg.type);
                 else if (msg.action === 'move') app.map.setNPCPosition('npc_' + msg.name, msg.x, msg.y);
@@ -349,7 +792,7 @@ function handleNetMessage(msg) {
 
 // ===== PLAYERS =====
 function addPlayer(id, name, color, isHost, charData) {
-    if (app.players[id]) return; // No duplicates!
+    if (app.players[id]) return;
     app.players[id] = { name, color, isHost, charData: charData || null };
     app.playerOrder.push(id);
     app.map.addPlayer(id, name, color);
@@ -370,12 +813,14 @@ function updatePlayersList() {
     for (const [id, p] of Object.entries(app.players)) {
         const div = document.createElement('div');
         div.className = 'player-item';
+        const isMe = id === app.myId;
         const avatar = (p.charData && p.charData.avatarUrl)
             ? '<img src="' + p.charData.avatarUrl + '" style="width:24px;height:24px;border-radius:50%;object-fit:cover;margin-right:4px;">'
             : '<span class="player-dot" style="background:' + p.color + '"></span>';
         const ci = p.charData ? '<span class="player-class">' + p.charData.race + ' ' + p.charData.class + '</span>' : '';
         const hb = p.isHost ? '<span class="player-host">👑</span>' : '';
-        div.innerHTML = avatar + '<span>' + p.name + '</span>' + ci + hb;
+        const hpBadge = isMe ? '<span class="player-hp">❤️' + app.hp + '</span>' : '';
+        div.innerHTML = avatar + '<span>' + p.name + '</span>' + ci + hpBadge + hb;
         list.appendChild(div);
     }
 }
@@ -394,16 +839,18 @@ function sendChat() {
     if (!text) return;
     input.value = '';
 
-    // Dice — send result to AI so it affects the story!
+    // Dice
     if (text.toLowerCase().startsWith('/roll ') || text.toLowerCase().startsWith('/r ')) {
         const notation = text.replace(/^\/(roll|r)\s+/i, '');
         const result = rollDice(notation);
         const msg = formatDiceResult(result, app.myName);
         addDiceMessage(msg);
+        playSound('dice');
         try { app.network.publish('dice', { text: msg }); } catch (e) { }
-        // Send dice result to AI
         if (app.ai.apiKey && result) {
             const aiText = app.myName + ' бросает ' + notation + ' = ' + result.total + ' [' + result.rolls.join(',') + ']';
+            if (result.total === 20) showToast('🎉 NATURAL 20! Критический успех!', 'dice', 4000);
+            else if (result.total === 1) showToast('💀 NATURAL 1! Критический провал!', 'error', 4000);
             if (app.isHost) handleAIRequest(aiText, app.myName);
             else try { app.network.publish('request-ai', { text: aiText, playerName: app.myName }); } catch (e) { }
         }
@@ -411,9 +858,11 @@ function sendChat() {
     }
 
     // Commands
-    if (text.toLowerCase() === '/help') { addSystemMessage('/roll 1d20+5 — кубик, /start — кампания, /tutorial — обучение'); return; }
+    if (text.toLowerCase() === '/help') { addSystemMessage('/roll 1d20+5 — кубик, /start — кампания, /tutorial — обучение, /hp — здоровье, /inv — инвентарь'); return; }
     if (text.toLowerCase() === '/start') { startCampaign(); return; }
     if (text.toLowerCase() === '/tutorial') { showTutorial(); return; }
+    if (text.toLowerCase() === '/hp') { showToast('❤️ HP: ' + app.hp + '/' + app.maxHp + ' | 🛡️ AC: ' + app.ac, 'info', 3000); return; }
+    if (text.toLowerCase() === '/inv') { toggleInventory(); return; }
 
     // Regular message
     addChatMessage(app.myName, text, app.myColor);
@@ -430,7 +879,6 @@ function sendChat() {
 async function handleAIRequest(text, playerName) {
     if (app.aiBusy) { addSystemMessage('⏳ Подождите...'); return; }
     try {
-        // Always update map context so AI knows where players are
         if (app.ai.updateMapContext && app.map.getMapDescription) {
             app.ai.updateMapContext(app.map.getMapDescription());
         }
@@ -453,17 +901,13 @@ async function startCampaign() {
     }));
     app.ai.setCharacters(chars);
 
-    // Pass map description to AI so it knows what's on the map
     if (app.map && app.map.getMapDescription) {
         app.ai.updateMapContext(app.map.getMapDescription());
     }
 
     const camp = AI_DM.CAMPAIGNS[app.campaignTheme];
-    if (camp) {
-        addSystemMessage('🧙 Мастер начинает кампанию: ' + camp.name);
-    } else {
-        addSystemMessage('🧙 Мастер начинает кампанию...');
-    }
+    addSystemMessage(camp ? '🧙 Мастер начинает кампанию: ' + camp.name : '🧙 Мастер начинает кампанию...');
+    showToast('🧙 Кампания начинается!', 'info');
 
     try {
         const response = await app.ai.startCampaign(chars.map(c => c.name));
@@ -476,26 +920,31 @@ function processAIResponse(text, shouldBroadcast) {
     try {
         let processed = parseAIRoll(text);
 
-        // Parse choices
         const choices = parseAIChoices(text);
         processed = processed.replace(/\[CHOICE:\s*[^\]]+\]/gi, '');
 
-        // Parse moves
         const moves = parseAIMoves(text);
         processed = processed.replace(/\[MOVE:\s*\S+\s+\d+\s+\d+\]/gi, '');
 
-        // Parse AI map — handle both complete and incomplete MAP blocks
         const aiMap = parseAIMap(text);
-        // Strip MAP_START even without MAP_END (in case AI response was cut off)
         processed = processed.replace(/\[MAP_START\][\s\S]*?(\[MAP_END\]|$)/gi, '');
 
-        // Parse NPCs
         const aiNPCs = parseAINPCs(text);
         processed = processed.replace(/\[NPC:\s*\S+\s+(enemy|boss|ally|neutral)\s+\d+\s+\d+\]/gi, '');
         const aiNPCMoves = parseAINPCMoves(text);
         processed = processed.replace(/\[NPC_MOVE:\s*\S+\s+\d+\s+\d+\]/gi, '');
         const aiNPCDead = parseAINPCDead(text);
         processed = processed.replace(/\[NPC_DEAD:\s*\S+\]/gi, '');
+
+        // Parse AI loot/items
+        const aiItems = parseAIItems(text);
+        processed = processed.replace(/\[ITEM:\s*[^\]]+\]/gi, '');
+        // Parse AI HP changes
+        const aiHP = parseAIHPChange(text);
+        processed = processed.replace(/\[HP:\s*[+-]?\d+\]/gi, '');
+        // Parse AI gold
+        const aiGold = parseAIGold(text);
+        processed = processed.replace(/\[GOLD:\s*[+-]?\d+\]/gi, '');
 
         // Apply moves
         for (const move of moves) {
@@ -508,38 +957,53 @@ function processAIResponse(text, shouldBroadcast) {
             }
         }
 
-        // Apply NPCs — log them for clarity
+        // Apply NPCs
         if (aiNPCs.length > 0) {
             const npcNames = aiNPCs.map(n => n.name + ' (' + n.type + ')').join(', ');
             addSystemMessage('👤 Появились: ' + npcNames);
+            showToast('👤 Новые NPC: ' + npcNames, 'combat');
         }
         for (const npc of aiNPCs) {
             app.map.addNPC('npc_' + npc.name, npc.name, npc.x, npc.y, npc.type);
             try { app.network.publish('npc', { action: 'add', name: npc.name, type: npc.type, x: npc.x, y: npc.y }); } catch (e) { }
         }
 
-        // Apply NPC moves
         for (const move of aiNPCMoves) {
             const npcId = 'npc_' + move.name;
             app.map.setNPCPosition(npcId, move.x, move.y);
             try { app.network.publish('npc', { action: 'move', name: move.name, x: move.x, y: move.y }); } catch (e) { }
         }
 
-        // Remove dead NPCs
         for (const name of aiNPCDead) {
             app.map.removeNPC('npc_' + name);
             try { app.network.publish('npc', { action: 'dead', name: name }); } catch (e) { }
+            showToast('💀 ' + name + ' повержен!', 'combat');
         }
 
-        // Apply AI map — BUT only if we don't already have a good map
-        // The pre-generated map matches the campaign, so prefer it
-        if (aiMap && isValidMap(aiMap) && !app.mapHasGoodContent()) {
+        // Apply AI map
+        if (aiMap && isValidMap(aiMap) && !mapHasGoodContent()) {
             app.map.setMapFromAI(aiMap);
             try { app.network.publish('map', { map: app.map.map }); } catch (e) { }
             addSystemMessage('🗺️ Карта создана Мастером!');
-        } else if (aiMap) {
-            // AI generated a map but we already have a good one — ignore it
-            console.log('[AI] Map from AI ignored — using pre-generated map');
+        }
+
+        // Apply items
+        for (const item of aiItems) {
+            addItem(item.name, item.icon || '📦', item.desc || '');
+        }
+
+        // Apply HP changes
+        for (const hpChange of aiHP) {
+            if (hpChange.name.toLowerCase() === app.myName.toLowerCase() || hpChange.name === '*') {
+                modifyHP(hpChange.delta);
+            }
+        }
+
+        // Apply gold
+        if (aiGold !== 0) {
+            app.gold += aiGold;
+            if (aiGold > 0) showToast('💰 +' + aiGold + ' золота!', 'loot');
+            else if (aiGold < 0) showToast('💰 ' + aiGold + ' золота', 'warning');
         }
 
         // Show message
@@ -562,34 +1026,62 @@ function processAIResponse(text, shouldBroadcast) {
         if (shouldBroadcast) {
             try { app.network.publish('ai', { text: processed }); } catch (e) { }
         }
+
+        // Update panels if open
+        if (!$('charSheet')?.classList.contains('hidden')) renderCharSheet();
+        if (!$('inventoryPanel')?.classList.contains('hidden')) renderInventory();
+        if (!$('combatPanel')?.classList.contains('hidden')) renderCombatTracker();
+        updatePlayersList();
     } catch (e) {
         console.error('processAIResponse error:', e);
         addSystemMessage('⚠️ Ошибка обработки ответа ИИ');
     }
 }
 
-// Check if AI-generated map is valid (not all zeros)
+// Parse AI items: [ITEM: name | icon | desc]
+function parseAIItems(text) {
+    const items = [];
+    const regex = /\[ITEM:\s*([^\]]+)\]/gi;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+        const parts = match[1].split('|').map(s => s.trim());
+        items.push({ name: parts[0] || 'Неизвестный предмет', icon: parts[1] || '📦', desc: parts[2] || '' });
+    }
+    return items;
+}
+
+// Parse AI HP changes: [HP: name +N] or [HP: name -N] or [HP: -N] (self)
+function parseAIHPChange(text) {
+    const changes = [];
+    const regex = /\[HP:\s*(\S+)?\s*([+-]\d+)\]/gi;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+        const name = match[1] || '*';
+        const delta = parseInt(match[2]);
+        if (!isNaN(delta)) changes.push({ name, delta });
+    }
+    return changes;
+}
+
+// Parse AI gold: [GOLD: +N] or [GOLD: -N]
+function parseAIGold(text) {
+    const match = text.match(/\[GOLD:\s*([+-]?\d+)\]/i);
+    return match ? parseInt(match[1]) : 0;
+}
+
+// Check if AI-generated map is valid
 function isValidMap(mapData) {
     if (!mapData || mapData.length < 5) return false;
     let nonZero = 0;
-    for (const row of mapData) {
-        for (const cell of row) {
-            if (cell > 0) nonZero++;
-        }
-    }
-    return nonZero > mapData.length * 2; // At least 2 non-zero cells per row
+    for (const row of mapData) for (const cell of row) if (cell > 0) nonZero++;
+    return nonZero > mapData.length * 2;
 }
 
-// Check if the current map has good content (not just empty)
 function mapHasGoodContent() {
     if (!app.map || !app.map.map) return false;
     let floorCount = 0;
-    for (const row of app.map.map) {
-        for (const cell of row) {
-            if (cell === 1 || cell === 2 || cell === 6) floorCount++; // floor, wall, door
-        }
-    }
-    return floorCount > 100; // Map has substantial content
+    for (const row of app.map.map) for (const cell of row) if (cell === 1 || cell === 2 || cell === 6) floorCount++;
+    return floorCount > 100;
 }
 
 function showChoices(choices) {
@@ -634,7 +1126,7 @@ async function toggleVoice() {
             app.voiceEnabled = true;
             if (panel) panel.classList.add('visible');
             if (btn) btn.classList.add('active');
-            addSystemMessage('🎤 Голос включён! Нажмите 🎙️ чтобы выключить/включить микрофон');
+            addSystemMessage('🎤 Голос включён!');
             app.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const source = app.audioContext.createMediaStreamSource(app.voiceStream);
             app.analyser = app.audioContext.createAnalyser();
@@ -644,10 +1136,7 @@ async function toggleVoice() {
             updateVoiceUsers();
             try { app.network.publish('voice-signal', { type: 'voice-on', playerId: app.myId, name: app.myName }); } catch (e) { }
         }
-    } catch (e) {
-        addSystemMessage('❌ Микрофон недоступен: ' + e.message);
-        addSystemMessage('💡 Нажмите 🎤 в верхней панели, чтобы включить голос');
-    }
+    } catch (e) { addSystemMessage('❌ Микрофон недоступен: ' + e.message); }
 }
 
 function toggleMic() {

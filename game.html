@@ -17,11 +17,15 @@
             <span class="topbar-count" id="connectionCount">1</span>
         </div>
         <div class="topbar-right">
+            <button class="topbar-btn" id="toggleCharSheet" title="Персонаж (C)">👤</button>
+            <button class="topbar-btn" id="toggleInventory" title="Инвентарь (I)">🎒</button>
+            <button class="topbar-btn" id="toggleCombat" title="Бой (B)">⚔️</button>
             <button class="topbar-btn" id="toggleVoice" title="Голосовой чат">🎤</button>
             <button class="topbar-btn" id="toggleMic" title="Микрофон">🎙️</button>
             <button class="topbar-btn" id="toggleFog" title="Туман войны">🌫️</button>
             <button class="topbar-btn" id="generateMap" title="Генерация карты">🗺️</button>
             <button class="topbar-btn" id="toggleMapTools" title="Инструменты карты">🔧</button>
+            <button class="topbar-btn" id="toggleMinimap" title="Мини-карта (M)">📌</button>
             <a href="lobby.html" class="topbar-btn" title="Выйти">🚪</a>
         </div>
     </div>
@@ -29,6 +33,25 @@
     <!-- Map Area -->
     <div class="map-area">
         <canvas id="mapCanvas"></canvas>
+
+        <!-- Minimap -->
+        <div class="minimap-container hidden" id="minimapContainer">
+            <canvas id="minimapCanvas" width="160" height="160"></canvas>
+            <div class="minimap-label">Мини-карта</div>
+        </div>
+
+        <!-- Quick Actions Bar -->
+        <div class="quick-actions" id="quickActions">
+            <button class="qa-btn" data-action="attack" title="Атаковать (A)">⚔️</button>
+            <button class="qa-btn" data-action="defend" title="Защититься (D)">🛡️</button>
+            <button class="qa-btn" data-action="skill" title="Проверка навыка (S)">🎯</button>
+            <button class="qa-btn" data-action="cast" title="Заклинание (Z)">✨</button>
+            <button class="qa-btn" data-action="heal" title="Лечение (H)">❤️</button>
+            <button class="qa-btn" data-action="search" title="Обыскать (F)">🔍</button>
+            <button class="qa-btn" data-action="talk" title="Говорить (T)">💬</button>
+            <button class="qa-btn" data-action="stealth" title="Скрытность (G)">🥷</button>
+            <button class="qa-btn" data-action="rest" title="Отдых (R)">🏕️</button>
+        </div>
 
         <!-- Map tools floating -->
         <div class="map-tools-float hidden" id="mapTools">
@@ -91,10 +114,55 @@
 
         <!-- Chat Input -->
         <div class="chat-input-area">
-            <input type="text" id="chatInput" placeholder="Действие или /roll 1d20...">
+            <input type="text" id="chatInput" placeholder="Действие или /roll 1d20... (Enter)">
             <button id="chatSend">⚔️</button>
         </div>
     </div>
+
+    <!-- Character Sheet Panel (overlay) -->
+    <div class="char-sheet hidden" id="charSheet">
+        <div class="char-sheet-header">
+            <h3>👤 Лист персонажа</h3>
+            <button class="char-sheet-close" id="closeCharSheet">✕</button>
+        </div>
+        <div class="char-sheet-body" id="charSheetBody">
+            <!-- Filled by JS -->
+        </div>
+    </div>
+
+    <!-- Inventory Panel (overlay) -->
+    <div class="inventory-panel hidden" id="inventoryPanel">
+        <div class="inv-header">
+            <h3>🎒 Инвентарь</h3>
+            <button class="char-sheet-close" id="closeInventory">✕</button>
+        </div>
+        <div class="inv-body" id="invBody">
+            <div class="inv-slots" id="invSlots">
+                <!-- Filled by JS -->
+            </div>
+            <div class="inv-gold">
+                <span>💰 Золото:</span>
+                <span id="invGold">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Combat Tracker (overlay) -->
+    <div class="combat-panel hidden" id="combatPanel">
+        <div class="combat-header">
+            <h3>⚔️ Трекер боя</h3>
+            <button class="char-sheet-close" id="closeCombat">✕</button>
+        </div>
+        <div class="combat-body" id="combatBody">
+            <div class="combat-round">Раунд: <span id="combatRound">1</span></div>
+            <div class="combat-turn-order" id="combatTurnOrder">
+                <!-- Filled by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
 
     <!-- Tutorial Overlay -->
     <div class="tutorial-overlay hidden" id="tutorialOverlay">
@@ -102,7 +170,7 @@
             <div class="tutorial-icon" id="tutorialIcon">🎮</div>
             <div class="tutorial-title" id="tutorialTitle">Добро пожаловать!</div>
             <div class="tutorial-text" id="tutorialText">Текст</div>
-            <div class="tutorial-progress" id="tutorialProgress">1/7</div>
+            <div class="tutorial-progress" id="tutorialProgress">1/8</div>
             <div class="tutorial-nav">
                 <button class="tutorial-skip" id="tutorialPrev" style="visibility:hidden;">← Назад</button>
                 <button class="tutorial-skip" id="tutorialSkip">Пропустить</button>
@@ -113,9 +181,9 @@
 
     <!-- Scripts (with cache-busting) -->
     <script src="https://unpkg.com/mqtt@5.5.0/dist/mqtt.min.js"></script>
-    <script src="js/network.js?v=7"></script>
-    <script src="js/map.js?v=7"></script>
-    <script src="js/ai.js?v=7"></script>
-    <script src="js/game.js?v=7"></script>
+    <script src="js/network.js?v=8"></script>
+    <script src="js/map.js?v=8"></script>
+    <script src="js/ai.js?v=8"></script>
+    <script src="js/game.js?v=8"></script>
 </body>
 </html>
