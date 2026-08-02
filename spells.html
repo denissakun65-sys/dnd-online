@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D&D Online — Заклинания</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
+</head>
+<body>
+<canvas id="particles-bg"></canvas>
+<nav class="landing-nav">
+    <a href="index.html">Главная</a>
+    <a href="lobby.html">Играть</a>
+    <div class="nav-dropdown">
+        <a href="#" class="nav-drop-toggle nav-active">Справочник ▾</a>
+        <div class="nav-drop-menu">
+            <a href="rules.html">📖 Правила D&D 5e</a>
+            <a href="bestiary.html">🐉 Бестиарий</a>
+            <a href="spells.html">✨ Заклинания</a>
+        </div>
+    </div>
+    <a href="changelog.html">Обновления</a>
+    <a href="about.html">О проекте</a>
+</nav>
+<div class="content-page">
+    <h1>✨ Заклинания D&D 5e</h1>
+    <p class="content-subtitle">Каталог заклинаний с фильтрами</p>
+    <div class="search-bar">
+        <input type="text" id="spellSearch" class="form-input" placeholder="🔍 Поиск заклинания...">
+        <div class="filter-chips" id="levelFilters">
+            <button class="chip active" data-level="all">Все</button>
+            <button class="chip" data-level="0">Фокусы</button>
+            <button class="chip" data-level="1">1 ур.</button>
+            <button class="chip" data-level="2">2 ур.</button>
+            <button class="chip" data-level="3">3 ур.</button>
+            <button class="chip" data-level="4">4 ур.</button>
+            <button class="chip" data-level="5">5 ур.</button>
+            <button class="chip" data-level="6">6 ур.</button>
+            <button class="chip" data-level="7">7 ур.</button>
+            <button class="chip" data-level="8">8 ур.</button>
+            <button class="chip" data-level="9">9 ур.</button>
+        </div>
+        <div class="filter-chips" id="schoolFilters">
+            <button class="chip active" data-school="all">Все школы</button>
+            <button class="chip" data-school="Воплощение">🔥 Воплощение</button>
+            <button class="chip" data-school="Ограждение">🛡️ Ограждение</button>
+            <button class="chip" data-school="Иллюзия">🌀 Иллюзия</button>
+            <button class="chip" data-school="Некромантия">💀 Некромантия</button>
+            <button class="chip" data-school="Преобразование">⚗️ Преобразование</button>
+            <button class="chip" data-school="Очарование">💜 Очарование</button>
+            <button class="chip" data-school="Прорицание">👁️ Прорицание</button>
+            <button class="chip" data-school="Вызов">🌀 Вызов</button>
+        </div>
+    </div>
+    <div class="spells-grid" id="spellsGrid"></div>
+</div>
+<script>
+const S=[
+{n:"Огненный шар",l:3,s:"Воплощение",t:"1 действие",r:"150 фт.",comp:"V,S,M",conc:false,desc:"Взрыв пламени 8d6 в радиусе 20 фт. Спасбросок ЛОВ половинного урона.",dmg:"8d6 огня"},
+{n:"Магическая стрела",l:1,s:"Воплощение",t:"1 бонусное действие",r:"120 фт.",comp:"V,S",conc:false,desc:"1d4+1 урона силовым полем. Автопопадание, 3 стрелы на 5 уровне.",dmg:"1d4+1 силового"},
+{n:"Исцеление ран",l:1,s:"Воплощение",t:"1 действие",r:"Касание",comp:"V,S",conc:false,desc:"Восстанавливает 1d8+модификатор заклинания HP. Больше на старших уровнях.",dmg:"1d8+мод исцеление"},
+{n:"Щит",l:1,s:"Ограждение",t:"1 реакция",r:"На себя",comp:"V,S",conc:false,desc:"+5 к AC до начала следующего хода. Защита от магических снарядов.",dmg:"—"},
+{n:"Огненный удар",l:0,s:"Воплощение",t:"1 действие",r:"120 фт.",comp:"V,S",conc:false,desc:"Выстрел пламени. Атака заклинанием или спасбросок ЛОВ. 1d10 огня.",dmg:"1d10 огня"},
+{n:"Замедление",l:3,s:"Преобразование",t:"1 действие",r:"120 фт.",comp:"V,S,M",conc:true,desc:"До 6 существ. Спасбросок МДР. Провалившие — скорость /2, 1 действие/действие, недостаток на спасброски.",dmg:"—"},
+{n:"Удержание",l:2,s:"Очарование",t:"1 действие",r:"60 фт.",comp:"V,S,M",conc:true,desc:"Одно существо. Спасбросок МДР. Парализовано, пока концентрация.",dmg:"—"},
+{n:"Невидимость",l:2,s:"Иллюзия",t:"1 действие",r:"Касание",comp:"V,S,M",conc:true,desc:"Существо невидимо, пока концентрация или не атакует/кастует.",dmg:"—"},
+{n:"Воскрешение",l:5,s:"Некромантия",t:"1 час",r:"Касание",comp:"V,S,M",conc:false,desc:"Воскрешает мёртвое существо не старше 10 дней. 1 час на ритуал.",dmg:"—"},
+{n:"Молния",l:3,s:"Воплощение",t:"1 действие",r:"На себя 100 фт.",comp:"V,S,M",conc:false,desc:"Линия молнии 6d8. Спасбросок ЛОВ половинного урона.",dmg:"6d8 молнии"},
+{n:"Дверь измерений",l:4,s:"Воплощение",t:"1 действие",r:"500 фт.",comp:"V",conc:false,desc:"Телепортация в любую точку в пределах 500 фт. Могут быть ошибки.",dmg:"—"},
+{n:"Стена огня",l:4,s:"Воплощение",t:"1 действие",r:"120 фт.",comp:"V,S,M",conc:true,desc:"Стена пламени 5d8. Существа на стене — урон. Концентрация до 1 мин.",dmg:"5d8 огня"},
+{n:"Конус холода",l:5,s:"Воплощение",t:"1 действие",r:"На себя 60 фт.",comp:"V,S",conc:false,desc:"Конус мороза 8d8. Спасбросок ЛОВ половинного. Убивает на 0 HP.",dmg:"8d8 холода"},
+{n:"Круг смерти",l:6,s:"Некромантия",t:"1 действие",r:"150 фт.",comp:"V,S",conc:false,desc:"Сфера некротического урона 8d6. Убивает на 0 HP. Спасбросок ЛОВ.",dmg:"8d6 некротического"},
+{n:"Телепортация",l:7,s:"Воплощение",t:"1 действие",r:"10 фт.",comp:"V",conc:false,desc:"Мгновенная телепортация до 8 существ в любую известную точку.",dmg:"—"},
+{n:"Метеоритный дождь",l:9,s:"Воплощение",t:"1 действие",r:"1 миля",comp:"V,S",conc:false,desc:"4 метеорита по 6d6 огня + 6d6 дробящего. Уничтожение всего в радиусе.",dmg:"24d6+24d6"},
+{n:"Желание",l:9,s:"Воплощение",t:"1 действие",r:"На себя",comp:"V",conc:false,desc:"Самое мощное заклинание. Исполняет любое желание. 33% шанс больше не кастовать.",dmg:"—"},
+{n:"Звёздный огонь",l:5,s:"Воплощение",t:"1 действие",r:"150 фт.",comp:"V,S",conc:false,desc:"Столп света 8d6 излучения. Спасбросок ЛОВ половинного.",dmg:"8d6 излучения"},
+{n:"Солнечный ожог",l:8,s:"Воплощение",t:"1 действие",r:"60 фт.",comp:"V,S,M",conc:false,desc:"Вспышка солнечного света 12d6 излучения. Ослепляет на 1 мин.",dmg:"12d6 излучения"},
+{n:"Сфера неудержимости",l:6,s:"Ограждение",t:"1 действие",r:"На себя",comp:"V,S,M",conc:true,desc:"Полусфера барьера. Существа внутри защищены. Непроницаема.",dmg:"—"},
+{n:"Превращение",l:4,s:"Преобразование",t:"1 действие",r:"60 фт.",comp:"V,S,M",conc:true,desc:"Превращает существо в зверя с CR <= уровня заклинания. Спасбросок МДР.",dmg:"—"},
+{n:"Полёт",l:3,s:"Преобразование",t:"1 действие",r:"Касание",comp:"V,S,M",conc:true,desc:"Существо получает скорость полёта 60 фт. Концентрация до 10 мин.",dmg:"—"},
+{n:"Обнаружение магии",l:1,s:"Прорицание",t:"1 действие",r:"На себя 30 фт.",comp:"V,S",conc:true,desc:"Видите магические ауры в радиусе 30 фт. Определяете школу магии.",dmg:"—"},
+{n:"Идентификация",l:1,s:"Прорицание",t:"1 минута",r:"Касание",comp:"V,S,M",conc:false,desc:"Определяет свойства магического предмета. Расходует жемчужину.",dmg:"—"},
+{n:"Волшебная рука",l:0,s:"Вызов",t:"1 действие",r:"30 фт.",comp:"V,S",conc:true,desc:"Призрачная рука. Может манипулировать предметами, взаимодействовать.",dmg:"—"},
+{n:"Поиск знакомых",l:1,s:"Вызов",t:"1 час",r:"10 фт.",comp:"V,S,M",conc:false,desc:"Призывает фамильяра — духа в форме мелкого зверя. Помощник.",dmg:"—"},
+{n:"Сон",l:1,s:"Очарование",t:"1 действие",r:"90 фт.",comp:"V,S,M",conc:false,desc:"5d8 HP существ засыпают. Сначала наименьшие HP. Пробуждение уроном.",dmg:"—"},
+{n:"Страх",l:3,s:"Очарование",t:"1 действие",r:"Конус 60 фт.",comp:"V,S,M",conc:true,desc:"Существа в конусе спасбросок МДР или бросаются бежать. Концентрация.",dmg:"—"},
+{n:"Массовое исцеление",l:6,s:"Воплощение",t:"1 действие",r:"60 фт.",comp:"V,S",conc:false,desc:"Восстанавливает 6d8+мод HP до 6 существ в радиусе.",dmg:"6d8+мод исцеление"},
+{n:"Малое восстановление",l:2,s:"Некромантия",t:"1 действие",r:"Касание",comp:"V,S",conc:false,desc:"Снимает болезнь или состояние (ослепление, глухота, паралич, яд).",dmg:"—"}
+];
+
+let activeLevel='all',activeSchool='all';
+function render(filter=''){
+    const g=document.getElementById('spellsGrid');if(!g)return;g.innerHTML='';
+    const f=filter.toLowerCase();
+    S.filter(sp=>(activeLevel==='all'||sp.l==activeLevel)&&(activeSchool==='all'||sp.s===activeSchool)&&(!f||sp.n.toLowerCase().includes(f)||sp.s.toLowerCase().includes(f))).forEach(sp=>{
+        const levelText=sp.l===0?'Фокус':sp.l+' ур.';
+        const levelColor=sp.l===0?'var(--accent-green)':sp.l<=3?'var(--accent-gold)':sp.l<=6?'var(--accent-orange)':'var(--accent-red)';
+        const d=document.createElement('div');d.className='spell-card';
+        d.innerHTML=`<div class="spell-header"><span class="spell-name">${sp.n}</span><span class="spell-level" style="color:${levelColor}">${levelText}</span></div>
+        <div class="spell-school">${sp.s}</div>
+        <div class="spell-meta"><span>⏱️ ${sp.t}</span><span>📏 ${sp.r}</span>${sp.conc?'<span>🔄 Концентрация</span>':''}</div>
+        <div class="spell-components">Компоненты: ${sp.comp}</div>
+        <div class="spell-desc">${sp.desc}</div>
+        ${sp.dmg?`<div class="spell-dmg">Урон: ${sp.dmg}</div>`:''}`;
+        g.appendChild(d);
+    });
+    if(!g.children.length) g.innerHTML='<p style="color:var(--text-dim);text-align:center;grid-column:1/-1;">Ничего не найдено</p>';
+}
+document.getElementById('spellSearch')?.addEventListener('input',e=>render(e.target.value));
+document.querySelectorAll('#levelFilters .chip').forEach(c=>c.addEventListener('click',()=>{document.querySelectorAll('#levelFilters .chip').forEach(x=>x.classList.remove('active'));c.classList.add('active');activeLevel=c.dataset.level;render(document.getElementById('spellSearch')?.value||'');}));
+document.querySelectorAll('#schoolFilters .chip').forEach(c=>c.addEventListener('click',()=>{document.querySelectorAll('#schoolFilters .chip').forEach(x=>x.classList.remove('active'));c.classList.add('active');activeSchool=c.dataset.school;render(document.getElementById('spellSearch')?.value||'');}));
+render();
+</script>
+<script>(function(){const c=document.getElementById('particles-bg');if(!c)return;const x=c.getContext('2d');let W,H,p=[];function r(){W=c.width=innerWidth;H=c.height=innerHeight}r();onresize=r;class P{constructor(){this.reset()}reset(){this.x=Math.random()*W;this.y=Math.random()*H;this.s=Math.random()*1.5+.3;this.vx=(Math.random()-.5)*.2;this.vy=-Math.random()*.2-.05;this.o=Math.random()*.25+.05;this.l=Math.random()*200+80;this.ml=this.l}update(){this.x+=this.vx;this.y+=this.vy;this.l--;if(this.l<=0||this.x<0||this.x>W||this.y<0||this.y>H)this.reset()}draw(){const f=Math.min(1,this.l/(this.ml*.3));x.globalAlpha=this.o*f;x.fillStyle='#d4a843';x.beginPath();x.arc(this.x,this.y,this.s,0,Math.PI*2);x.fill()}}for(let i=0;i<35;i++)p.push(new P());!function a(){x.clearRect(0,0,W,H);p.forEach(p=>{p.update();p.draw()});x.globalAlpha=1;requestAnimationFrame(a)}()})();
+</script>
+</body>
+</html>

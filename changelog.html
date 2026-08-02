@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D&D Online — Обновления</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
+</head>
+<body>
+<canvas id="particles-bg"></canvas>
+<nav class="landing-nav">
+    <a href="index.html">Главная</a>
+    <a href="lobby.html">Играть</a>
+    <div class="nav-dropdown">
+        <a href="#" class="nav-drop-toggle">Справочник ▾</a>
+        <div class="nav-drop-menu">
+            <a href="rules.html">📖 Правила D&D 5e</a>
+            <a href="bestiary.html">🐉 Бестиарий</a>
+            <a href="spells.html">✨ Заклинания</a>
+        </div>
+    </div>
+    <a href="changelog.html" class="nav-active">Обновления</a>
+    <a href="about.html">О проекте</a>
+</nav>
+<div class="content-page">
+    <h1>📜 Обновления</h1>
+    <p class="content-subtitle">История развития проекта</p>
+    <div class="timeline">
+        <div class="timeline-item">
+            <div class="timeline-date">v2.0 — Август 2025</div>
+            <div class="timeline-card">
+                <h3>🎨 Полная переработка графики</h3>
+                <ul>
+                    <li>✅ Новый CSS с нуля — Cinzel Decorative, градиентные тексты, анимации</li>
+                    <li>✅ Анимированные частицы на всех страницах</li>
+                    <li>✅ Интерактивный бросок кубика на главной</li>
+                    <li>✅ Параллакс D20 по мыши</li>
+                    <li>✅ Анимированные счётчики</li>
+                    <li>✅ Эффект печати текста в подзаголовке</li>
+                    <li>✅ Выпадающее меню «Справочник»</li>
+                    <li>✅ Новые страницы: Бестиарий, Заклинания</li>
+                    <li>✅ Премиальные текстуры карты — камни, кирпичи, вода, лава</li>
+                    <li>✅ Система NPC на карте — враги, боссы, союзники, нейтральные</li>
+                    <li>✅ Результаты кубиков влияют на историю</li>
+                    <li>✅ Аватары уникальны для каждого игрока</li>
+                    <li>✅ 30+ монстров в Бестиарии с фильтрами и поиском</li>
+                    <li>✅ 30+ заклинаний с фильтрами по уровню и школе</li>
+                </ul>
+            </div>
+        </div>
+        <div class="timeline-item">
+            <div class="timeline-date">v1.5 — Июль 2025</div>
+            <div class="timeline-card">
+                <h3>👥 Мультиплеер и стабильность</h3>
+                <ul>
+                    <li>✅ MQTT мультиплеер через broker.emqx.io</li>
+                    <li>✅ Исправлен баг двойного ID игрока</li>
+                    <li>✅ Исправлен баг дублирования игроков</li>
+                    <li>✅ Синхронизация карты и позиций</li>
+                    <li>✅ Одиночный режим без сети</li>
+                    <li>✅ charData передаётся при подключении</li>
+                    <li>✅ Голосовой чат (индикаторы)</li>
+                    <li>✅ Обучение для новых игроков (7 шагов)</li>
+                </ul>
+            </div>
+        </div>
+        <div class="timeline-item">
+            <div class="timeline-date">v1.0 — Июнь 2025</div>
+            <div class="timeline-card">
+                <h3>🚀 Первый релиз</h3>
+                <ul>
+                    <li>✅ Создание персонажа: 30+ рас, 12 классов</li>
+                    <li>✅ ИИ Мастер на Groq/Gemini</li>
+                    <li>✅ 8 кампаний с уникальными предысториями</li>
+                    <li>✅ Карта 60x60, 8 типов генерации</li>
+                    <li>✅ Point buy, 4d6, стандартный массив</li>
+                    <li>✅ ИИ-аватары через Pollinations.ai</li>
+                    <li>✅ Хостинг на GitHub Pages</li>
+                </ul>
+            </div>
+        </div>
+        <div class="timeline-item timeline-future">
+            <div class="timeline-date">🔮 В планах</div>
+            <div class="timeline-card">
+                <h3>⚡ Будущие обновления</h3>
+                <ul>
+                    <li>🔲 Боевая система (HP, инициатива, AC)</li>
+                    <li>🔲 Лист персонажа в игре</li>
+                    <li>🔲 WebRTC для реального голосового чата</li>
+                    <li>🔲 Инвентарь и предметы</li>
+                    <li>🔲 Сохранение прогресса</li>
+                    <li>🔲 Больше заклинаний и монстров</li>
+                    <li>🔲 Пользовательские карты</li>
+                    <li>🔲 Музыкальное сопровождение</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+<script>(function(){const c=document.getElementById('particles-bg');if(!c)return;const x=c.getContext('2d');let W,H,p=[];function r(){W=c.width=innerWidth;H=c.height=innerHeight}r();onresize=r;class P{constructor(){this.reset()}reset(){this.x=Math.random()*W;this.y=Math.random()*H;this.s=Math.random()*1.5+.3;this.vx=(Math.random()-.5)*.2;this.vy=-Math.random()*.2-.05;this.o=Math.random()*.25+.05;this.l=Math.random()*200+80;this.ml=this.l}update(){this.x+=this.vx;this.y+=this.vy;this.l--;if(this.l<=0||this.x<0||this.x>W||this.y<0||this.y>H)this.reset()}draw(){const f=Math.min(1,this.l/(this.ml*.3));x.globalAlpha=this.o*f;x.fillStyle='#d4a843';x.beginPath();x.arc(this.x,this.y,this.s,0,Math.PI*2);x.fill()}}for(let i=0;i<35;i++)p.push(new P());!function a(){x.clearRect(0,0,W,H);p.forEach(p=>{p.update();p.draw()});x.globalAlpha=1;requestAnimationFrame(a)}()})();
+</script>
+</body>
+</html>

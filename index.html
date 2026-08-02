@@ -10,16 +10,24 @@
 <body>
     <canvas id="particles-bg"></canvas>
 
-    <nav class="landing-nav">
-        <a href="index.html">Главная</a>
+    <nav class="landing-nav" id="mainNav">
+        <a href="index.html" class="nav-active">Главная</a>
         <a href="lobby.html">Играть</a>
-        <a href="rules.html">Правила</a>
+        <div class="nav-dropdown">
+            <a href="#" class="nav-drop-toggle">Справочник ▾</a>
+            <div class="nav-drop-menu">
+                <a href="rules.html">📖 Правила D&D 5e</a>
+                <a href="bestiary.html">🐉 Бестиарий</a>
+                <a href="spells.html">✨ Заклинания</a>
+            </div>
+        </div>
+        <a href="changelog.html">Обновления</a>
         <a href="about.html">О проекте</a>
     </nav>
 
     <div class="landing">
         <div class="landing-content">
-            <div class="landing-d20">
+            <div class="landing-d20" id="heroD20">
                 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <defs>
                         <linearGradient id="d20grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -37,38 +45,73 @@
                     <polygon points="95,30 95,70 50,50" stroke="url(#d20grad)" stroke-width="1" fill="rgba(212,168,67,0.02)"/>
                     <polygon points="5,30 50,50 5,70" stroke="url(#d20grad)" stroke-width="1" fill="rgba(212,168,67,0.02)"/>
                     <polygon points="50,95 95,70 50,50 5,70" stroke="url(#d20grad)" stroke-width="1" fill="rgba(212,168,67,0.03)"/>
-                    <text x="50" y="58" text-anchor="middle" fill="url(#d20grad)" font-family="Cinzel" font-size="22" font-weight="bold">20</text>
+                    <text id="d20number" x="50" y="58" text-anchor="middle" fill="url(#d20grad)" font-family="Cinzel" font-size="22" font-weight="bold">20</text>
                 </svg>
             </div>
 
             <h1 class="landing-logo">D&D ONLINE</h1>
-            <p class="landing-subtitle">Приключения ждут за порогом</p>
+            <p class="landing-subtitle" id="heroSubtitle"></p>
 
             <div class="landing-buttons">
                 <a href="lobby.html" class="btn-primary">⚔️ Начать приключение</a>
                 <a href="rules.html" class="btn-secondary">📖 Правила D&D 5e</a>
             </div>
 
+            <!-- Interactive Dice Roller -->
+            <div class="dice-roller" id="diceRoller">
+                <div class="dice-roller-label">Бросить кубик</div>
+                <div class="dice-roller-row">
+                    <button class="dice-btn" data-dice="d4">d4</button>
+                    <button class="dice-btn" data-dice="d6">d6</button>
+                    <button class="dice-btn" data-dice="d8">d8</button>
+                    <button class="dice-btn" data-dice="d10">d10</button>
+                    <button class="dice-btn" data-dice="d12">d12</button>
+                    <button class="dice-btn active" data-dice="d20">d20</button>
+                    <button class="dice-btn" data-dice="d100">d100</button>
+                </div>
+                <div class="dice-roller-result" id="diceResult">—</div>
+            </div>
+
             <div class="landing-features">
-                <div class="feature-card">
+                <a href="lobby.html" class="feature-card">
                     <div class="feature-icon">🧙</div>
                     <div class="feature-title">ИИ Мастер</div>
                     <div class="feature-desc">Ведущий на базе ИИ, который создаёт уникальные истории и реагирует на каждое действие</div>
-                </div>
-                <div class="feature-card">
+                </a>
+                <a href="lobby.html" class="feature-card">
                     <div class="feature-icon">👥</div>
                     <div class="feature-title">Мультиплеер</div>
                     <div class="feature-desc">Играйте с друзьями онлайн в реальном времени. Видите друг друга на карте</div>
-                </div>
-                <div class="feature-card">
+                </a>
+                <a href="bestiary.html" class="feature-card">
                     <div class="feature-icon">🗺️</div>
-                    <div class="feature-title">Карты</div>
-                    <div class="feature-desc">8 типов карт: подземелья, пещеры, леса, замки, храмы и другие</div>
+                    <div class="feature-title">Бестиарий</div>
+                    <div class="feature-desc">Справочник монстров D&D 5e с характеристиками, действиями и описанием</div>
+                </a>
+                <a href="spells.html" class="feature-card">
+                    <div class="feature-icon">✨</div>
+                    <div class="feature-title">Заклинания</div>
+                    <div class="feature-desc">Каталог заклинаний D&D 5e с фильтрами по уровню и школе магии</div>
+                </a>
+            </div>
+
+            <!-- Stats Counter -->
+            <div class="stats-counter">
+                <div class="counter-item">
+                    <div class="counter-value" data-target="30">0</div>
+                    <div class="counter-label">Рас</div>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🎭</div>
-                    <div class="feature-title">Персонажи</div>
-                    <div class="feature-desc">30+ рас, 12 классов, аватар от ИИ, полная кастомизация</div>
+                <div class="counter-item">
+                    <div class="counter-value" data-target="12">0</div>
+                    <div class="counter-label">Классов</div>
+                </div>
+                <div class="counter-item">
+                    <div class="counter-value" data-target="8">0</div>
+                    <div class="counter-label">Кампаний</div>
+                </div>
+                <div class="counter-item">
+                    <div class="counter-value" data-target="50">0</div>
+                    <div class="counter-label">Монстров</div>
                 </div>
             </div>
         </div>
@@ -81,52 +124,120 @@
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         let W, H, particles = [];
-
-        function resize() {
-            W = canvas.width = window.innerWidth;
-            H = canvas.height = window.innerHeight;
-        }
-        resize();
-        window.addEventListener('resize', resize);
-
-        class Particle {
+        function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+        resize(); window.addEventListener('resize', resize);
+        class P {
             constructor() { this.reset(); }
-            reset() {
-                this.x = Math.random() * W;
-                this.y = Math.random() * H;
-                this.size = Math.random() * 2 + 0.5;
-                this.speedX = (Math.random() - 0.5) * 0.3;
-                this.speedY = (Math.random() - 0.5) * 0.3 - 0.1;
-                this.opacity = Math.random() * 0.4 + 0.1;
-                this.life = Math.random() * 300 + 100;
-                this.maxLife = this.life;
-                this.hue = Math.random() > 0.7 ? 40 : 30; // gold-ish
-            }
-            update() {
-                this.x += this.speedX;
-                this.y += this.speedY;
-                this.life--;
-                if (this.life <= 0 || this.x < 0 || this.x > W || this.y < 0 || this.y > H) this.reset();
-            }
-            draw() {
-                const fade = Math.min(1, this.life / (this.maxLife * 0.3));
-                ctx.globalAlpha = this.opacity * fade;
-                ctx.fillStyle = `hsl(${this.hue}, 70%, 60%)`;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
+            reset() { this.x = Math.random()*W; this.y = Math.random()*H; this.s = Math.random()*2+0.5; this.vx = (Math.random()-0.5)*0.3; this.vy = (Math.random()-0.5)*0.3-0.1; this.o = Math.random()*0.4+0.1; this.l = Math.random()*300+100; this.ml = this.l; this.hue = Math.random()>0.7?40:30; }
+            update() { this.x+=this.vx; this.y+=this.vy; this.l--; if(this.l<=0||this.x<0||this.x>W||this.y<0||this.y>H) this.reset(); }
+            draw() { const f=Math.min(1,this.l/(this.ml*0.3)); ctx.globalAlpha=this.o*f; ctx.fillStyle=`hsl(${this.hue},70%,60%)`; ctx.beginPath(); ctx.arc(this.x,this.y,this.s,0,Math.PI*2); ctx.fill(); }
+        }
+        for(let i=0;i<60;i++) particles.push(new P());
+        function a() { ctx.clearRect(0,0,W,H); particles.forEach(p=>{p.update();p.draw();}); ctx.globalAlpha=1; requestAnimationFrame(a); }
+        a();
+    })();
+
+    // ===== Typing Effect for Subtitle =====
+    (function() {
+        const el = document.getElementById('heroSubtitle');
+        if (!el) return;
+        const text = 'Приключения ждут за порогом';
+        let i = 0;
+        el.textContent = '';
+        function type() {
+            if (i < text.length) {
+                el.textContent += text[i];
+                i++;
+                setTimeout(type, 60 + Math.random() * 40);
             }
         }
+        setTimeout(type, 800);
+    })();
 
-        for (let i = 0; i < 60; i++) particles.push(new Particle());
+    // ===== D20 Parallax on Mouse =====
+    (function() {
+        const d20 = document.getElementById('heroD20');
+        if (!d20) return;
+        document.addEventListener('mousemove', e => {
+            const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+            const dx = (e.clientX - cx) / cx, dy = (e.clientY - cy) / cy;
+            d20.style.transform = `translateY(${Math.sin(Date.now()/1000)*8 - 10}px) rotate(${dx * 8}deg)`;
+        });
+    })();
 
-        function animate() {
-            ctx.clearRect(0, 0, W, H);
-            particles.forEach(p => { p.update(); p.draw(); });
-            ctx.globalAlpha = 1;
-            requestAnimationFrame(animate);
-        }
-        animate();
+    // ===== Dice Roller =====
+    (function() {
+        const resultEl = document.getElementById('diceResult');
+        const d20num = document.getElementById('d20number');
+        let selectedDice = 20;
+
+        document.querySelectorAll('.dice-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.dice-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedDice = parseInt(btn.dataset.dice.replace('d', ''));
+            });
+        });
+
+        document.getElementById('heroD20')?.addEventListener('click', () => {
+            if (!resultEl) return;
+            resultEl.classList.add('rolling');
+            const max = selectedDice || 20;
+            let rolls = 0;
+            const interval = setInterval(() => {
+                const val = Math.floor(Math.random() * max) + 1;
+                resultEl.textContent = val;
+                if (d20num) d20num.textContent = val;
+                rolls++;
+                if (rolls > 12) {
+                    clearInterval(interval);
+                    const final = Math.floor(Math.random() * max) + 1;
+                    resultEl.textContent = final;
+                    if (d20num) d20num.textContent = final;
+                    resultEl.classList.remove('rolling');
+                    if (final === max) {
+                        resultEl.classList.add('crit');
+                        resultEl.textContent = '🎉 ' + final + ' — Крит!';
+                        setTimeout(() => resultEl.classList.remove('crit'), 2000);
+                    } else if (final === 1) {
+                        resultEl.classList.add('fail');
+                        resultEl.textContent = '💀 ' + final + ' — Провал!';
+                        setTimeout(() => resultEl.classList.remove('fail'), 2000);
+                    }
+                }
+            }, 60);
+        });
+    })();
+
+    // ===== Animated Counters =====
+    (function() {
+        const counters = document.querySelectorAll('.counter-value');
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const el = entry.target;
+                    const target = parseInt(el.dataset.target);
+                    let current = 0;
+                    const step = Math.max(1, Math.floor(target / 30));
+                    const timer = setInterval(() => {
+                        current += step;
+                        if (current >= target) { current = target; clearInterval(timer); }
+                        el.textContent = current + '+';
+                    }, 50);
+                    observer.unobserve(el);
+                }
+            });
+        });
+        counters.forEach(c => observer.observe(c));
+    })();
+
+    // ===== Nav Dropdown =====
+    (function() {
+        document.querySelectorAll('.nav-dropdown').forEach(dd => {
+            dd.addEventListener('mouseenter', () => dd.classList.add('open'));
+            dd.addEventListener('mouseleave', () => dd.classList.remove('open'));
+            dd.addEventListener('click', () => dd.classList.toggle('open'));
+        });
     })();
     </script>
 </body>

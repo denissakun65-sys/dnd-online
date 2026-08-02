@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D&D Online — Бестиарий</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
+</head>
+<body>
+<canvas id="particles-bg"></canvas>
+<nav class="landing-nav">
+    <a href="index.html">Главная</a>
+    <a href="lobby.html">Играть</a>
+    <div class="nav-dropdown">
+        <a href="#" class="nav-drop-toggle nav-active">Справочник ▾</a>
+        <div class="nav-drop-menu">
+            <a href="rules.html">📖 Правила D&D 5e</a>
+            <a href="bestiary.html">🐉 Бестиарий</a>
+            <a href="spells.html">✨ Заклинания</a>
+        </div>
+    </div>
+    <a href="changelog.html">Обновления</a>
+    <a href="about.html">О проекте</a>
+</nav>
+<div class="content-page">
+    <h1>🐉 Бестиарий D&D 5e</h1>
+    <p class="content-subtitle">Справочник монстров и существ</p>
+    <div class="search-bar">
+        <input type="text" id="monsterSearch" class="form-input" placeholder="🔍 Поиск монстра...">
+        <div class="filter-chips" id="typeFilters">
+            <button class="chip active" data-type="all">Все</button>
+            <button class="chip" data-type="Зверь">🐺 Зверь</button>
+            <button class="chip" data-type="Нежить">💀 Нежить</button>
+            <button class="chip" data-type="Дракон">🐉 Дракон</button>
+            <button class="chip" data-type="Демон">😈 Демон</button>
+            <button class="chip" data-type="Гуманоид">🧑 Гуманоид</button>
+            <button class="chip" data-type="Конструкт">⚙️ Конструкт</button>
+            <button class="chip" data-type="Гигант">🗿 Гигант</button>
+            <button class="chip" data-type="Туман">🌿 Туман</button>
+        </div>
+    </div>
+    <div class="bestiary-grid" id="bestiaryGrid"></div>
+</div>
+<script>
+const M=[
+{n:"Гоблин",t:"Гуманоид",cr:"1/4",ac:15,hp:7,s:8,d:14,c:10,i:10,w:8,ch:8,desc:"Маленькие злые гуманоиды, живущие племенами. Жестокие, но трусливые.",a:"Кинжал +4 (1d4+2), Арбалет +4 (1d8)"},
+{n:"Скелет",t:"Нежить",cr:"1/4",ac:13,hp:13,s:10,d:14,c:15,i:6,w:8,ch:5,desc:"Ожившие кости воинов прошлого. Неустойчивы к дробящему оружию.",a:"Короткий меч +4 (1d6+2), Лёгкий арбалет +4 (1d8)"},
+{n:"Зомби",t:"Нежить",cr:"1/4",ac:8,hp:22,s:13,d:6,c:16,i:3,w:6,ch:5,desc:"Гниющие трупы, поднятые тёмной магией. Медленные, но живучие.",a:"Удар +3 (1d6+1)"},
+{n:"Волк",t:"Зверь",cr:"1/4",ac:13,hp:11,s:12,d:15,c:12,i:3,w:12,ch:6,desc:"Стайные хищники. В стае получают преимущество на атаку.",a:"Укус +4 (2d4+2)"},
+{n:"Кобольд",t:"Гуманоид",cr:"1/8",ac:12,hp:5,s:7,d:15,c:9,i:8,w:7,ch:8,desc:"Рептилоидные гуманоиды. Слабые поодиночке, но опасные в группе.",a:"Кинжал +4 (1d4+2)"},
+{n:"Орк",t:"Гуманоид",cr:"1/2",ac:13,hp:15,s:16,d:12,c:16,i:7,w:11,ch:10,desc:"Свирепые воины, живущие набегами. Агрессивные и выносливые.",a:"Топор +5 (1d8+3)"},
+{n:"Огр",t:"Гигант",cr:"2",ac:11,hp:59,s:19,d:8,c:16,i:5,w:7,ch:7,desc:"Огромные и тупые. Любят есть людей. Очень сильные.",a:"Дубина +6 (2d6+4)"},
+{n:"Тролль",t:"Гигант",cr:"5",ac:15,hp:84,s:18,d:13,c:20,i:7,w:9,ch:7,desc:"Регенерируют каждый ход, если не получают урон огнём или кислотой.",a:"Когти +7 (2d6+4), Укус +7 (2d6+4)"},
+{n:"Вампир",t:"Нежить",cr:"13",ac:16,hp:144,s:18,d:18,c:18,i:17,w:15,ch:18,desc:"Аристократы тьмы. Пьют кровь, контролируют летучих мышей и волков.",a:"Укус +9 (1d8+4 + 3d6 некротического), Когти +9 (1d8+4)"},
+{n:"Лич",t:"Нежить",cr:"21",ac:17,hp:135,s:11,d:16,c:16,i:20,w:14,ch:16,desc:"Маги, обретшие бессмертие через филактерию. Невероятно опасные заклинатели.",a:"Парализующее касание +12 (1d8+5), Заклинания"},
+{n:"Красный Дракон (Взрослый)",t:"Дракон",cr:"17",ac:19,hp:256,s:27,d:10,c:25,i:16,w:13,ch:21,desc:"Огнедышащие драконы. Самые жадные и агрессивные из хроматических драконов.",a:"Укус +14 (2d10+8), Когти +14 (2d6+8), Огненное дыхание 18d6"},
+{n:"Синий Дракон (Взрослый)",t:"Дракон",cr:"16",ac:19,hp:225,s:25,d:10,c:23,i:16,w:15,ch:19,desc:"Дышат молнией. Обитают в пустынях. Любят устраивать засады.",a:"Укус +13 (2d10+7), Когти +13 (2d6+7), Молниеносное дыхание 16d6"},
+{n:"Бегемот",t:"Демон",cr:"21",ac:18,hp:180,s:26,d:14,c:22,i:14,w:12,ch:16,desc:"Огромные демоны разрушения. Вызывают огненный дождь и телепортируются.",a:"Укус +14 (2d10+8), Когти +14 (2d8+8), Огненный дождь 7d6"},
+{n:"Голем Железа",t:"Конструкт",cr:"16",ac:20,hp:210,s:24,d:9,c:20,i:3,w:11,ch:1,desc:"Непробиваемые магические конструкции. Иммунитет к огню, ядам и психике.",a:"Удар +13 (3d8+7), Дыхание ядом 8d8"},
+{n:"Голем Камня",t:"Конструкт",cr:"10",ac:17,hp:178,s:22,d:9,c:20,i:3,w:11,ch:1,desc:"Массивные каменные стражи. Замедляют врагов магией.",a:"Удар +10 (3d8+6), Замедление DC 17"},
+{n:"Медуза",t:"Туман",cr:"6",ac:15,hp:127,s:10,d:15,c:16,i:12,w:13,ch:15,desc:"Превращает в камень взглядом. Змеи вместо волос.",a:"Кинжал +5 (1d4+2), Каменный взгляд DC 14"},
+{n:"Минотавр",t:"Туман",cr:"3",ac:14,hp:76,s:18,d:11,c:16,i:6,w:16,ch:9,desc:"Бычьи гуманоиды в лабиринтах. Наносят огромный урон при атаке с разбега.",a:"Топор +6 (2d12+4), Рога +6 (1d8+4)"},
+{n:"Виверна",t:"Дракон",cr:"6",ac:13,hp:110,s:18,d:10,c:16,i:5,w:12,ch:6,desc:"Летающие хищники с ядовитым хвостом. Не драконы, но родственники.",a:"Укус +7 (2d6+4), Жало +7 (2d6+4 + 3d6 яд DC 15)"},
+{n:"Разумный Меч",t:"Конструкт",cr:"5",ac:17,hp:33,s:12,d:15,c:12,i:14,w:13,ch:16,desc:"Магические мечи с собственным разумом. Подчиняют владельца и летают.",a:"Лезвие +6 (1d8+2 + 2d6 психического)"},
+{n:"Василиск",t:"Туман",cr:"3",ac:15,hp:52,s:16,d:8,c:15,i:2,w:8,ch:7,desc:"Ящерицы, чей взгляд превращает в камень. Медленные, но смертельные.",a:"Укус +5 (2d6+3), Каменный взгляд DC 12"},
+{n:"Гриффон",t:"Зверь",cr:"2",ac:12,hp:59,s:18,d:15,c:16,i:3,w:13,ch:8,desc:"Полу-орёл, полу-лев. Горды и свирепы. Приручаются для полётов.",a:"Клюв +5 (1d8+4), Когти +5 (2d6+4)"},
+{n:"Гигантский Паук",t:"Зверь",cr:"1",ac:14,hp:26,s:14,d:16,c:12,i:2,w:11,ch:4,desc:"Огромные пауки, плетущие сети. Ядовиты и прыгучи.",a:"Укус +5 (1d6+2 + 2d6 яд DC 11)"},
+{n:"Бандит",t:"Гуманоид",cr:"1/8",ac:12,hp:11,s:11,d:12,c:12,i:10,w:10,ch:10,desc:"Разбойники на дорогах. Слабые, но в банде опасны.",a:"Короткий меч +3 (1d6+1), Арбалет +3 (1d8)"},
+{n:"Культист",t:"Гуманоид",cr:"1/8",ac:12,hp:9,s:11,d:12,c:10,i:10,w:11,ch:10,desc:"Поклонники тёмных сил. Пользуются ритуалами и жертвоприношениями.",a:"Кинжал +3 (1d4+1)"},
+{n:"Водный Элементаль",t:"Туман",cr:"5",ac:14,hp:114,s:18,d:14,c:18,i:5,w:10,ch:8,desc:"Существа из чистой воды. Могут затягивать врагов в водоворот.",a:"Удар +7 (2d8+4), Захват DC 15"},
+{n:"Огненный Элементаль",t:"Туман",cr:"5",ac:13,hp:102,s:10,d:17,c:16,i:6,w:10,ch:7,desc:"Существа из чистого пламени. Поджигают всё вокруг.",a:"Касание +6 (2d6+3 + 1d6 огонь), Поджог"},
+{n:"Личинка",t:"Нежить",cr:"1/4",ac:8,hp:9,s:8,d:5,c:11,i:7,w:6,ch:2,desc:"Маленькие черви-нежить. Опасны в стае — могут парализовать.",a:"Укус +1 (1d6)"},
+{n:"Тень",t:"Нежить",cr:"1/2",ac:12,hp:16,s:6,d:14,c:13,i:6,w:10,ch:6,desc:"Призрачные существа, вытягивающие силу. Сопротивление ко всему, кроме излучения и магического оружия.",a:"Касание +4 (2d6+2 психического)"},
+{n:"Горгулья",t:"Конструкт",cr:"2",ac:15,hp:52,s:15,d:11,c:16,i:6,w:11,ch:7,desc:"Каменные статуи, оживающие для нападения. Могут притворяться камнем.",a:"Укус +4 (1d6+2), Когти +4 (1d6+2), Рог +4 (1d6+2)"},
+{n:"Верный Пёс",t:"Зверь",cr:"1/8",ac:12,hp:5,s:12,d:14,c:10,i:3,w:12,ch:6,desc:"Обычный пёс. Преданный друг и спутник приключенца.",a:"Укус +3 (1d4+1)"}
+];
+
+let activeType='all';
+function render(filter=''){
+    const g=document.getElementById('bestiaryGrid');if(!g)return;
+    g.innerHTML='';
+    const f=filter.toLowerCase();
+    M.filter(m=>(activeType==='all'||m.t===activeType)&&(!f||m.n.toLowerCase().includes(f)||m.t.toLowerCase().includes(f))).forEach(m=>{
+        const crColor=m.cr.includes('/')||parseInt(m.cr)<1?'var(--accent-green)':parseInt(m.cr)<=5?'var(--accent-gold)':parseInt(m.cr)<=10?'var(--accent-orange)':'var(--accent-red)';
+        const d=document.createElement('div');d.className='monster-card';
+        d.innerHTML=`<div class="monster-header"><span class="monster-name">${m.n}</span><span class="monster-cr" style="color:${crColor}">CR ${m.cr}</span></div>
+        <div class="monster-type">${m.t}</div>
+        <div class="monster-stats-row"><span>AC ${m.ac}</span><span>HP ${m.hp}</span></div>
+        <div class="monster-abilities"><span>СИЛ ${m.s}</span><span>ЛОВ ${m.d}</span><span>ТЕЛ ${m.c}</span><span>ИНТ ${m.i}</span><span>МДР ${m.w}</span><span>ХАР ${m.ch}</span></div>
+        <div class="monster-desc">${m.desc}</div>
+        <div class="monster-actions"><strong>Действия:</strong> ${m.a}</div>`;
+        g.appendChild(d);
+    });
+    if(!g.children.length) g.innerHTML='<p style="color:var(--text-dim);text-align:center;grid-column:1/-1;">Ничего не найдено</p>';
+}
+document.getElementById('monsterSearch')?.addEventListener('input',e=>render(e.target.value));
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));c.classList.add('active');activeType=c.dataset.type;render(document.getElementById('monsterSearch')?.value||'');}));
+render();
+</script>
+<script>(function(){const c=document.getElementById('particles-bg');if(!c)return;const x=c.getContext('2d');let W,H,p=[];function r(){W=c.width=innerWidth;H=c.height=innerHeight}r();onresize=r;class P{constructor(){this.reset()}reset(){this.x=Math.random()*W;this.y=Math.random()*H;this.s=Math.random()*1.5+.3;this.vx=(Math.random()-.5)*.2;this.vy=-Math.random()*.2-.05;this.o=Math.random()*.25+.05;this.l=Math.random()*200+80;this.ml=this.l}update(){this.x+=this.vx;this.y+=this.vy;this.l--;if(this.l<=0||this.x<0||this.x>W||this.y<0||this.y>H)this.reset()}draw(){const f=Math.min(1,this.l/(this.ml*.3));x.globalAlpha=this.o*f;x.fillStyle='#d4a843';x.beginPath();x.arc(this.x,this.y,this.s,0,Math.PI*2);x.fill()}}for(let i=0;i<35;i++)p.push(new P());!function a(){x.clearRect(0,0,W,H);p.forEach(p=>{p.update();p.draw()});x.globalAlpha=1;requestAnimationFrame(a)}()})();
+</script>
+</body>
+</html>
