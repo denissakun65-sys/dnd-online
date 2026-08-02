@@ -169,9 +169,10 @@ function init() {
 // ===== SETUP FUNCTIONS =====
 function setupMapTools() {
     // Toggle map tools
-    document.getElementById('toggleMapTools').addEventListener('click', () => {
-        document.getElementById('mapTools').classList.toggle('hidden');
-        document.getElementById('toggleMapTools').classList.toggle('active');
+    const toggleMapToolsBtn = document.getElementById('toggleMapTools');
+    if (toggleMapToolsBtn) toggleMapToolsBtn.addEventListener('click', () => {
+        document.getElementById('mapTools')?.classList.toggle('hidden');
+        toggleMapToolsBtn.classList.toggle('active');
     });
 
     // Tool buttons
@@ -184,9 +185,10 @@ function setupMapTools() {
     });
 
     // Fog toggle
-    document.getElementById('toggleFog').addEventListener('click', () => {
+    const toggleFogBtn = document.getElementById('toggleFog');
+    if (toggleFogBtn) toggleFogBtn.addEventListener('click', () => {
         app.map.fogEnabled = !app.map.fogEnabled;
-        document.getElementById('toggleFog').classList.toggle('active', app.map.fogEnabled);
+        toggleFogBtn.classList.toggle('active', app.map.fogEnabled);
         if (!app.map.fogEnabled) {
             for (let y = 0; y < app.map.gridH; y++)
                 for (let x = 0; x < app.map.gridW; x++) app.map.fogMap[y][x] = false;
@@ -195,17 +197,19 @@ function setupMapTools() {
     });
 
     // Map generation
-    document.getElementById('generateMap').addEventListener('click', () => {
-        document.getElementById('genModal').classList.remove('hidden');
+    const genMapBtn = document.getElementById('generateMap');
+    if (genMapBtn) genMapBtn.addEventListener('click', () => {
+        document.getElementById('genModal')?.classList.remove('hidden');
     });
-    document.getElementById('closeGenModal').addEventListener('click', () => {
-        document.getElementById('genModal').classList.add('hidden');
+    const closeGenBtn = document.getElementById('closeGenModal');
+    if (closeGenBtn) closeGenBtn.addEventListener('click', () => {
+        document.getElementById('genModal')?.classList.add('hidden');
     });
     document.querySelectorAll('.gen-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             app.map.generate(btn.dataset.gen);
             try { app.network.publish('map', { map: app.map.map }); } catch (e) { }
-            document.getElementById('genModal').classList.add('hidden');
+            document.getElementById('genModal')?.classList.add('hidden');
             addSystemMessage('🗺️ Карта: ' + btn.textContent);
         });
     });
@@ -213,29 +217,31 @@ function setupMapTools() {
 
 function setupTopBar() {
     // Copy room code
-    document.getElementById('roomDisplay').addEventListener('click', () => {
-        const code = document.getElementById('roomDisplay').textContent;
+    const roomEl = document.getElementById('roomDisplay');
+    if (roomEl) roomEl.addEventListener('click', () => {
+        const code = roomEl.textContent;
         navigator.clipboard.writeText(code).then(() => addSystemMessage('📋 Скопировано: ' + code));
     });
 
     // Voice
-    document.getElementById('toggleVoice').addEventListener('click', toggleVoice);
-    document.getElementById('toggleMic').addEventListener('click', toggleMic);
+    document.getElementById('toggleVoice')?.addEventListener('click', toggleVoice);
+    document.getElementById('toggleMic')?.addEventListener('click', toggleMic);
 }
 
 function setupChat() {
-    document.getElementById('chatSend').addEventListener('click', sendChat);
-    document.getElementById('chatInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
+    document.getElementById('chatSend')?.addEventListener('click', sendChat);
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput) chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
 }
 
 function setupTutorial() {
-    document.getElementById('tutorialPrev').addEventListener('click', () => { app.tutorialStep--; updateTutorialStep(); });
-    document.getElementById('tutorialNext').addEventListener('click', () => {
+    document.getElementById('tutorialPrev')?.addEventListener('click', () => { app.tutorialStep--; updateTutorialStep(); });
+    document.getElementById('tutorialNext')?.addEventListener('click', () => {
         app.tutorialStep++;
         if (app.tutorialStep >= TUTORIAL.length) hideTutorial();
         else updateTutorialStep();
     });
-    document.getElementById('tutorialSkip').addEventListener('click', hideTutorial);
+    document.getElementById('tutorialSkip')?.addEventListener('click', hideTutorial);
 }
 
 // ===== TUTORIAL =====
@@ -253,12 +259,18 @@ function updateTutorialStep() {
     try {
         const step = TUTORIAL[app.tutorialStep];
         if (!step) { hideTutorial(); return; }
-        document.getElementById('tutorialIcon').textContent = step.icon;
-        document.getElementById('tutorialTitle').textContent = step.title;
-        document.getElementById('tutorialText').textContent = step.text;
-        document.getElementById('tutorialProgress').textContent = `${app.tutorialStep + 1}/${TUTORIAL.length}`;
-        document.getElementById('tutorialPrev').style.visibility = app.tutorialStep === 0 ? 'hidden' : 'visible';
-        document.getElementById('tutorialNext').textContent = app.tutorialStep === TUTORIAL.length - 1 ? '🎮 Начать!' : 'Далее →';
+        const icon = document.getElementById('tutorialIcon');
+        const title = document.getElementById('tutorialTitle');
+        const text = document.getElementById('tutorialText');
+        const progress = document.getElementById('tutorialProgress');
+        const prev = document.getElementById('tutorialPrev');
+        const next = document.getElementById('tutorialNext');
+        if (icon) icon.textContent = step.icon;
+        if (title) title.textContent = step.title;
+        if (text) text.textContent = step.text;
+        if (progress) progress.textContent = `${app.tutorialStep + 1}/${TUTORIAL.length}`;
+        if (prev) prev.style.visibility = app.tutorialStep === 0 ? 'hidden' : 'visible';
+        if (next) next.textContent = app.tutorialStep === TUTORIAL.length - 1 ? '🎮 Начать!' : 'Далее →';
     } catch (e) { console.error(e); }
 }
 
