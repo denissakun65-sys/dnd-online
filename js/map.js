@@ -17,6 +17,7 @@ class GameMap {
         this.fogMap = [];
         this.fogEnabled = false;
         this.players = {};       // id -> {x, y, name, color}
+        this.npcs = {};          // id -> {x, y, name, type, hp}  type: enemy/ally/neutral
         this.selectedTool = TILE.FLOOR;
         this.isDrawing = false;
         this.isHost = false;
@@ -162,6 +163,31 @@ class GameMap {
 
     removePlayer(id) {
         delete this.players[id];
+        this.render();
+    }
+
+    // ===== NPC =====
+    addNPC(id, name, x, y, type) {
+        if (!type) type = 'enemy';
+        this.npcs[id] = { x, y, name, type, hp: 0 };
+        this.render();
+    }
+
+    removeNPC(id) {
+        delete this.npcs[id];
+        this.render();
+    }
+
+    setNPCPosition(id, x, y) {
+        if (this.npcs[id]) {
+            this.npcs[id].x = x;
+            this.npcs[id].y = y;
+            this.render();
+        }
+    }
+
+    clearNPCs() {
+        this.npcs = {};
         this.render();
     }
 
@@ -397,18 +423,22 @@ class GameMap {
     }
 
     getMapDescription() {
-        const features = [], positions = [];
+        const features = [], positions = [], npcList = [];
         for (let y = 0; y < this.gridH; y++)
             for (let x = 0; x < this.gridW; x++) {
                 const t = this.map[y][x];
-                if (t === TILE.DOOR) features.push(`дверь(${x},${y})`);
-                else if (t === TILE.CHEST) features.push(`сундук(${x},${y})`);
-                else if (t === TILE.TRAP) features.push(`ловушка(${x},${y})`);
-                else if (t === TILE.STAIRS) features.push(`лестница(${x},${y})`);
-                else if (t === TILE.THRONE) features.push(`трон(${x},${y})`);
+                if (t === TILE.DOOR) features.push('дверь(' + x + ',' + y + ')');
+                else if (t === TILE.CHEST) features.push('сундук(' + x + ',' + y + ')');
+                else if (t === TILE.TRAP) features.push('ловушка(' + x + ',' + y + ')');
+                else if (t === TILE.STAIRS) features.push('лестница(' + x + ',' + y + ')');
+                else if (t === TILE.THRONE) features.push('трон(' + x + ',' + y + ')');
             }
-        for (const [id, p] of Object.entries(this.players)) positions.push(`${p.name}(${p.x},${p.y})`);
-        return `Объекты: ${features.length > 0 ? features.slice(0, 30).join(', ') : 'пусто'}. Позиции: ${positions.join(', ')}. Размер: ${this.gridW}x${this.gridH}.`;
+        for (const [id, p] of Object.entries(this.players)) positions.push(p.name + '(' + p.x + ',' + p.y + ')');
+        for (const [id, n] of Object.entries(this.npcs)) npcList.push(n.name + '(' + n.type + ',' + n.x + ',' + n.y + ')');
+        let desc = 'Объекты: ' + (features.length > 0 ? features.slice(0, 30).join(', ') : 'пусто') + '. Позиции: ' + positions.join(', ') + '.';
+        if (npcList.length > 0) desc += ' NPC: ' + npcList.join(', ') + '.';
+        desc += ' Размер: ' + this.gridW + 'x' + this.gridH + '.';
+        return desc;
     }
 
     // ===== RENDERING =====
@@ -474,6 +504,64 @@ class GameMap {
                 ctx.lineWidth = 2.5;
                 ctx.strokeText(p.name, px + cs / 2, py + cs + 1);
                 ctx.fillText(p.name, px + cs / 2, py + cs + 1);
+            }
+        }
+
+        // NPCs (enemies, allies, neutrals)
+        for (const [id, npc] of Object.entries(this.npcs)) {
+            if (this.fogEnabled && this.fogMap[npc.y] && this.fogMap[npc.y][npc.x]) continue;
+            const px = npc.x * cs, py = npc.y * cs;
+            const r = cs * 0.35;
+
+            let color, symbol;
+            if (npc.type === 'enemy') { color = '#c0392b'; symbol = '💀'; }
+            else if (npc.type === 'ally') { color = '#27ae60'; symbol = '🛡'; }
+            else if (npc.type === 'boss') { color = '#8e44ad'; symbol = '👹'; }
+            else { color = '#2980b9'; symbol = '👤'; }
+
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.beginPath(); ctx.ellipse(px + cs / 2, py + cs * 0.85, r * 0.8, r * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+
+            // Body - diamond shape for enemies, circle for others
+            ctx.beginPath();
+            if (npc.type === 'enemy' || npc.type === 'boss') {
+                // Diamond shape
+                ctx.moveTo(px + cs / 2, py + cs * 0.15);
+                ctx.lineTo(px + cs * 0.85, py + cs / 2);
+                ctx.lineTo(px + cs / 2, py + cs * 0.85);
+                ctx.lineTo(px + cs * 0.15, py + cs / 2);
+                ctx.closePath();
+            } else {
+                ctx.arc(px + cs / 2, py + cs / 2, r, 0, Math.PI * 2);
+            }
+            const grad = ctx.createRadialGradient(px + cs / 2 - r * 0.3, py + cs / 2 - r * 0.3, 0, px + cs / 2, py + cs / 2, r);
+            grad.addColorStop(0, this._lighten(color, 40));
+            grad.addColorStop(1, color);
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            // Border
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Glow
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 10;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Name
+            if (cs > 16) {
+                ctx.font = `bold ${Math.max(7, cs * 0.24)}px ${getComputedStyle(document.body).fontFamily}`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.fillStyle = color;
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 2.5;
+                ctx.strokeText(npc.name, px + cs / 2, py + cs + 1);
+                ctx.fillText(npc.name, px + cs / 2, py + cs + 1);
             }
         }
         ctx.restore();

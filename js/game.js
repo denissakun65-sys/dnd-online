@@ -337,6 +337,12 @@ function handleNetMessage(msg) {
                     updateVoiceUsers();
                 }
                 break;
+
+            case 'npc':
+                if (msg.action === 'add') app.map.addNPC('npc_' + msg.name, msg.name, msg.x, msg.y, msg.type);
+                else if (msg.action === 'move') app.map.setNPCPosition('npc_' + msg.name, msg.x, msg.y);
+                else if (msg.action === 'dead') app.map.removeNPC('npc_' + msg.name);
+                break;
         }
     } catch (e) { console.error('Net msg error:', e); }
 }
@@ -388,13 +394,19 @@ function sendChat() {
     if (!text) return;
     input.value = '';
 
-    // Dice
+    // Dice — send result to AI so it affects the story!
     if (text.toLowerCase().startsWith('/roll ') || text.toLowerCase().startsWith('/r ')) {
         const notation = text.replace(/^\/(roll|r)\s+/i, '');
         const result = rollDice(notation);
         const msg = formatDiceResult(result, app.myName);
         addDiceMessage(msg);
         try { app.network.publish('dice', { text: msg }); } catch (e) { }
+        // Send dice result to AI
+        if (app.ai.apiKey && result) {
+            const aiText = app.myName + ' бросает ' + notation + ' = ' + result.total + ' [' + result.rolls.join(',') + ']';
+            if (app.isHost) handleAIRequest(aiText, app.myName);
+            else try { app.network.publish('request-ai', { text: aiText, playerName: app.myName }); } catch (e) { }
+        }
         return;
     }
 
@@ -460,10 +472,18 @@ function processAIResponse(text, shouldBroadcast) {
         const moves = parseAIMoves(text);
         processed = processed.replace(/\[MOVE:\s*\S+\s+\d+\s+\d+\]/gi, '');
 
-        // Parse map — handle both complete and incomplete MAP blocks
+        // Parse AI map — handle both complete and incomplete MAP blocks
         const aiMap = parseAIMap(text);
         // Strip MAP_START even without MAP_END (in case AI response was cut off)
         processed = processed.replace(/\[MAP_START\][\s\S]*?(\[MAP_END\]|$)/gi, '');
+
+        // Parse NPCs
+        const aiNPCs = parseAINPCs(text);
+        processed = processed.replace(/\[NPC:\s*\S+\s+(enemy|boss|ally|neutral)\s+\d+\s+\d+\]/gi, '');
+        const aiNPCMoves = parseAINPCMoves(text);
+        processed = processed.replace(/\[NPC_MOVE:\s*\S+\s+\d+\s+\d+\]/gi, '');
+        const aiNPCDead = parseAINPCDead(text);
+        processed = processed.replace(/\[NPC_DEAD:\s*\S+\]/gi, '');
 
         // Apply moves
         for (const move of moves) {
@@ -474,6 +494,25 @@ function processAIResponse(text, shouldBroadcast) {
                     break;
                 }
             }
+        }
+
+        // Apply NPCs
+        for (const npc of aiNPCs) {
+            app.map.addNPC('npc_' + npc.name, npc.name, npc.x, npc.y, npc.type);
+            try { app.network.publish('npc', { action: 'add', name: npc.name, type: npc.type, x: npc.x, y: npc.y }); } catch (e) { }
+        }
+
+        // Apply NPC moves
+        for (const move of aiNPCMoves) {
+            const npcId = 'npc_' + move.name;
+            app.map.setNPCPosition(npcId, move.x, move.y);
+            try { app.network.publish('npc', { action: 'move', name: move.name, x: move.x, y: move.y }); } catch (e) { }
+        }
+
+        // Remove dead NPCs
+        for (const name of aiNPCDead) {
+            app.map.removeNPC('npc_' + name);
+            try { app.network.publish('npc', { action: 'dead', name: name }); } catch (e) { }
         }
 
         // Apply AI map only if it's valid (not all zeros)

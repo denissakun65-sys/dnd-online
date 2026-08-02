@@ -117,6 +117,13 @@ class AI_DM {
 ПЕРЕМЕЩЕНИЕ:
 Когда описываешь, куда идут игроки: [MOVE: имя X Y] (X,Y = координаты 0-59)
 
+NPC И МОНСТРЫ:
+Когда появляются NPC или монстры, используй формат:
+[NPC: имя тип X Y] — типы: enemy (враг), boss (босс), ally (союзник), neutral (нейтральный)
+Пример: [NPC: Гоблин_1 enemy 15 20] [NPC: Торговец neutral 10 5]
+Когда NPC двигается: [NPC_MOVE: имя X Y]
+Когда NPC умирает: [NPC_DEAD: имя]
+
 КАРТА:
 Когда начинаешь кампанию, ОБЯЗАТЕЛЬНО создай карту:
 [MAP_START]
@@ -288,4 +295,34 @@ function parseAIMap(text) {
         if (cells.length > 0 && !isNaN(cells[0]) && cells.length >= 5) map.push(cells);
     }
     return map.length > 0 ? map : null;
+}
+
+function parseAINPCs(text) {
+    const npcs = [];
+    const regex = /\[NPC:\s*(\S+)\s+(enemy|boss|ally|neutral)\s+(\d+)\s+(\d+)\]/gi;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+        npcs.push({ name: match[1], type: match[2], x: parseInt(match[3]), y: parseInt(match[4]) });
+    }
+    return npcs;
+}
+
+function parseAINPCMoves(text) {
+    const moves = [];
+    const regex = /\[NPC_MOVE:\s*(\S+)\s+(\d+)\s+(\d+)\]/gi;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+        moves.push({ name: match[1], x: parseInt(match[2]), y: parseInt(match[3]) });
+    }
+    return moves;
+}
+
+function parseAINPCDead(text) {
+    const dead = [];
+    const regex = /\[NPC_DEAD:\s*(\S+)\]/gi;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+        dead.push(match[1]);
+    }
+    return dead;
 }
