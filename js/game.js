@@ -167,6 +167,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const types = ['dungeon','cave','forest','tavern','castle','temple','village','island'];
             app.map.generate(types[Math.floor(Math.random()*types.length)]);
             addSystemMessage('🎲 Случайная карта сгенерирована');
+        } else if (mapStyle === 'auto') {
+            // Generate map based on campaign type
+            const camp = AI_DM.CAMPAIGNS[app.campaignTheme];
+            if (camp && camp.mapType) {
+                app.map.generate(camp.mapType);
+                addSystemMessage(`🗺️ Карта "${camp.name}" создана`);
+            }
         }
 
         // Show tutorial
