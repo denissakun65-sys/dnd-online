@@ -1,4 +1,4 @@
-// ===== game.js — Main game controller with tutorial =====
+// ===== game.js — Main game controller with working choices =====
 
 const app = {
     network: null, map: null, ai: null,
@@ -8,60 +8,20 @@ const app = {
     charData: null, campaignTheme: '',
     voiceEnabled: false, micEnabled: true,
     voiceStream: null, audioContext: null, analyser: null,
-    tutorialStep: 0
+    tutorialStep: 0, aiBusy: false
 };
 
 const TUTORIAL = [
-    {
-        title: '⚔️ Добро пожаловать в D&D Online!',
-        text: 'Это игра в Dungeons & Dragons с ИИ Мастером Подземелий. Я расскажу, как всё работает!',
-        icon: '🎮'
-    },
-    {
-        title: '🗺️ Карта',
-        text: 'Слева — карта мира. Ваш токен — цветной кружок с подсветкой. Нажмите ЛЕВУЮ кнопку мыши на пустое место, чтобы переместить туда персонажа. Колёсико — зум. Ctrl+ЛКМ — передвинуть камеру.',
-        icon: '🗺️'
-    },
-    {
-        title: '🧙 ИИ Ведущий',
-        text: 'Мастер Подземелий описывает мир, управляет NPC и монстрами. Он видит вашу карту и знает, где вы находитесь. Мастер может перемещать ваш токен, если сюжет ведёт вас в другое место.',
-        icon: '🧙'
-    },
-    {
-        title: '💬 Чат',
-        text: 'Пишите действия в чат — что делает ваш персонаж. Например: "Осматриваю комнату", "Атакую гоблина мечом", "Пробую открыть дверь". ИИ Ведущий ответит и определит, нужны ли броски кубиков.',
-        icon: '💬'
-    },
-    {
-        title: '⚔️ Выборы',
-        text: 'Иногда ИИ предложит варианты действий — они появятся в панели "Что вы сделаете?". Просто нажмите на вариант, чтобы выбрать его. Или напишите свой вариант в чат!',
-        icon: '⚔️'
-    },
-    {
-        title: '🎲 Кубики',
-        text: 'Напишите /roll 1d20+5 чтобы бросить кубик. Формат: /roll NdN+M. Примеры: /roll 1d20 (проверка), /roll 2d6+3 (урон), /roll 1d8 (заклинание). ИИ тоже бросает кубики автоматически!',
-        icon: '🎲'
-    },
-    {
-        title: '🗺️ Редактирование карты',
-        text: 'Нажмите кнопку "🗺️ Карта" сверху — появятся инструменты рисования. ЛКМ рисует, выберите тип клетки: стена 🧱, дверь 🚪, сундук 📦, вода 🌊 и т.д. Кнопка "🎲 Генерация" создаст случайную карту.',
-        icon: '🗺️'
-    },
-    {
-        title: '🎤 Голосовой чат',
-        text: 'Если играете с друзьями — нажмите "🎤 Голос" для голосового чата. Кнопка 🎙️ включает/выключает микрофон. Индикатор показывает, кто говорит.',
-        icon: '🎤'
-    },
-    {
-        title: '🌫️ Туман войны',
-        text: 'Нажмите "🌫️ Туман" чтобы скрыть неисследованные области. Карта открывается по мере перемещения вашего персонажа. Это создаёт атмосферу неизведанности!',
-        icon: '🌫️'
-    },
-    {
-        title: '✅ Готово!',
-        text: 'Пишите действия в чат, и ИИ Ведущий начнёт приключение! Если что-то забыли — нажмите /help. Удачи, герой! 🎲',
-        icon: '🎉'
-    }
+    { title: '⚔️ Добро пожаловать в D&D Online!', text: 'Это игра в Dungeons & Dragons с ИИ Мастером Подземелий. Я расскажу, как всё работает!', icon: '🎮' },
+    { title: '🗺️ Карта', text: 'Слева — карта мира. Ваш токен — цветной кружок с подсветкой. ЛКМ — переместить персонажа. Колёсико — зум. Ctrl+ЛКМ — камера.', icon: '🗺️' },
+    { title: '🧙 ИИ Ведущий', text: 'Мастер описывает мир и управляет NPC. Он видит карту и знает, где вы. Мастер может перемещать ваш токен.', icon: '🧙' },
+    { title: '💬 Чат', text: 'Пишите действия: "Осматриваю комнату", "Атакую гоблина", "Пробую открыть дверь". ИИ ответит и бросит кубики если нужно.', icon: '💬' },
+    { title: '⚔️ Выборы', text: 'ИИ предложит варианты действий — кликните на вариант. Или напишите свой вариант в чат!', icon: '⚔️' },
+    { title: '🎲 Кубики', text: '/roll 1d20+5 — бросить кубик. ИИ тоже бросает автоматически когда нужно!', icon: '🎲' },
+    { title: '🗺️ Редактирование карты', text: 'Кнопка "🗺️ Карта" — инструменты рисования. "🎲 Генерация" — случайная карта.', icon: '🗺️' },
+    { title: '🎤 Голосовой чат', text: 'Кнопка "🎤 Голос" — голосовой чат с друзьями. 🎙️ — вкл/выкл микрофон.', icon: '🎤' },
+    { title: '🌫️ Туман войны', text: 'Кнопка "🌫️ Туман" — скрывает неисследованные области. Открывается по мере движения.', icon: '🌫️' },
+    { title: '✅ Готово!', text: 'Пишите действия в чат, и приключение начнётся! /help — помощь, /tutorial — обучение. Удачи! 🎲', icon: '🎉' }
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -90,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     app.ai.onTyping = (isTyping) => {
+        app.aiBusy = isTyping;
         let el = document.querySelector('.typing-indicator');
         if (el) el.classList.toggle('visible', isTyping);
         else if (isTyping) {
@@ -97,6 +58,18 @@ document.addEventListener('DOMContentLoaded', () => {
             el.className = 'typing-indicator visible';
             el.textContent = '🧙 Мастер думает...';
             document.querySelector('.chat-panel').insertBefore(el, document.querySelector('.chat-input-area'));
+        }
+        // Disable input while AI is thinking
+        const input = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('chatSend');
+        if (isTyping) {
+            input.placeholder = '🧙 Мастер думает... подождите...';
+            input.disabled = true;
+            sendBtn.disabled = true;
+        } else {
+            input.placeholder = 'Действие или /roll 1d20... (/help — помощь)';
+            input.disabled = false;
+            sendBtn.disabled = false;
         }
     };
 
@@ -125,7 +98,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('fillFloor').addEventListener('click', () => { app.map.fillFloor(); app.network.publish('map', { map: app.map.map }); });
     document.getElementById('copyCode').addEventListener('click', () => { const c=document.getElementById('roomDisplay').textContent; navigator.clipboard.writeText(c).then(()=>addSystemMessage('Код скопирован: '+c)); });
 
-    // Map generation
     document.getElementById('generateMap').addEventListener('click', () => document.getElementById('genModal').classList.remove('hidden'));
     document.getElementById('closeGenModal').addEventListener('click', () => document.getElementById('genModal').classList.add('hidden'));
     document.querySelectorAll('.gen-btn').forEach(btn => {
@@ -137,38 +109,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Voice
     document.getElementById('toggleVoice').addEventListener('click', toggleVoice);
     document.getElementById('toggleMic').addEventListener('click', toggleMic);
 
-    // Chat
     document.getElementById('chatSend').addEventListener('click', () => sendChat());
     document.getElementById('chatInput').addEventListener('keydown', e => { if (e.key==='Enter') sendChat(); });
+
+    // Tutorial buttons
+    document.getElementById('tutorialPrev').addEventListener('click', () => { app.tutorialStep--; updateTutorialStep(); });
+    document.getElementById('tutorialNext').addEventListener('click', () => { app.tutorialStep++; if (app.tutorialStep >= TUTORIAL.length) hideTutorial(); else updateTutorialStep(); });
+    document.getElementById('tutorialSkip').addEventListener('click', hideTutorial);
 
     // Network
     app.network = new MqttNetwork();
 
     app.network.onConnect = () => {
         addSystemMessage('✅ Подключено к комнате: ' + app.roomCode.toUpperCase());
-
         addPlayer(app.myPlayerId, app.myName, app.myColor, app.isHost, app.charData);
         app.map.myPlayerId = app.myPlayerId;
         app.map.isHost = app.isHost;
 
         document.getElementById('roomDisplay').textContent = app.roomCode.toUpperCase();
-        if (app.isSolo) { document.getElementById('modeLabel').textContent='⚔️ Одиночка'; }
-        else { document.getElementById('modeLabel').textContent='👥 Онлайн'; }
-        document.getElementById('modeLabel').style.display='inline-block';
+        document.getElementById('modeLabel').textContent = app.isSolo ? '⚔️ Одиночка' : '👥 Онлайн';
+        document.getElementById('modeLabel').style.display = 'inline-block';
         updateConnectionCount();
 
-        // Map style
         const mapStyle = sessionStorage.getItem('dnd-mapstyle') || 'auto';
         if (mapStyle === 'random') {
             const types = ['dungeon','cave','forest','tavern','castle','temple','village','island'];
             app.map.generate(types[Math.floor(Math.random()*types.length)]);
             addSystemMessage('🎲 Случайная карта сгенерирована');
         } else if (mapStyle === 'auto') {
-            // Generate map based on campaign type
             const camp = AI_DM.CAMPAIGNS[app.campaignTheme];
             if (camp && camp.mapType) {
                 app.map.generate(camp.mapType);
@@ -176,18 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Show tutorial
         showTutorial();
-
-        // Start campaign after tutorial
-        if (app.ai.apiKey && app.isHost) {
-            setTimeout(() => {
-                if (!document.getElementById('tutorialOverlay').classList.contains('hidden')) return;
-                startCampaign();
-            }, 2000);
-        } else if (!app.ai.apiKey) {
-            addSystemMessage('⚠️ API ключ не введён — ИИ Ведущий недоступен.');
-        }
     };
 
     app.network.onError = (err) => addSystemMessage('❌ ' + err);
@@ -239,7 +199,6 @@ function updateTutorialStep() {
 
 function hideTutorial() {
     document.getElementById('tutorialOverlay').classList.add('hidden');
-    // Start campaign
     if (app.ai.apiKey && app.isHost) {
         addSystemMessage('🧙 Мастер начинает кампанию...');
         setTimeout(() => startCampaign(), 800);
@@ -312,8 +271,9 @@ function updateConnectionCount() {
     document.getElementById('connectionCount').textContent = app.isSolo ? '1' : `${count}/4`;
 }
 
-// ===== CHAT =====
+// ===== CHAT & AI =====
 function sendChat() {
+    if (app.aiBusy) return; // Don't send while AI is thinking
     const input = document.getElementById('chatInput');
     const text = input.value.trim();
     if (!text) return;
@@ -328,30 +288,46 @@ function sendChat() {
         return;
     }
     if (text.toLowerCase() === '/help') {
-        addSystemMessage('📖 Команды: /roll 1d20+5 — бросить кубик, /start — начать кампанию, /help — помощь');
+        addSystemMessage('📖 Команды: /roll 1d20+5 — бросить кубик, /start — начать кампанию, /tutorial — обучение');
         addSystemMessage('💡 Просто пишите действия в чат — ИИ Ведущий ответит!');
         return;
     }
     if (text.toLowerCase() === '/start') { startCampaign(); return; }
     if (text.toLowerCase() === '/tutorial') { showTutorial(); return; }
 
+    // Send action to AI
     addChatMessage(app.myName, text, app.myColor);
     app.network.publish('chat', { name: app.myName, text, color: app.myColor });
 
     if (app.ai.apiKey) {
-        if (app.isHost) handleAIRequest(text, app.myName);
-        else app.network.publish('request-ai', { text, playerName: app.myName });
+        if (app.isHost) {
+            handleAIRequest(text, app.myName);
+        } else {
+            app.network.publish('request-ai', { text, playerName: app.myName });
+        }
     }
 }
 
 async function handleAIRequest(text, playerName) {
+    if (app.aiBusy) {
+        addSystemMessage('⏳ Мастер ещё думает, подождите...');
+        return;
+    }
+
     app.ai.updateMapContext(app.map.getMapDescription());
-    const response = await app.ai.generateResponse(text, playerName);
-    processAIResponse(response, true);
+
+    try {
+        const response = await app.ai.generateResponse(text, playerName);
+        processAIResponse(response, true);
+    } catch (err) {
+        addSystemMessage('❌ Ошибка ИИ: ' + err.message);
+    }
 }
 
 async function startCampaign() {
     if (!app.ai.apiKey) { addSystemMessage('⚠️ API ключ не установлен!'); return; }
+    if (app.aiBusy) { addSystemMessage('⏳ Мастер ещё думает...'); return; }
+
     const chars = Object.values(app.players).map(p => ({
         name: p.name,
         race: p.charData?.race || 'Человек',
@@ -360,20 +336,36 @@ async function startCampaign() {
         stats: p.charData?.stats || { STR:10, DEX:10, CON:10, INT:10, WIS:10, CHA:10 }
     }));
     app.ai.setCharacters(chars);
+
     addSystemMessage('🧙 Мастер начинает кампанию...');
-    const response = await app.ai.startCampaign(chars.map(c => c.name));
-    processAIResponse(response, true);
+
+    try {
+        const response = await app.ai.startCampaign(chars.map(c => c.name));
+        processAIResponse(response, true);
+    } catch (err) {
+        addSystemMessage('❌ Ошибка ИИ: ' + err.message);
+    }
 }
 
 function processAIResponse(text, shouldBroadcast) {
+    if (!text) return;
+
+    // Parse dice rolls
     let processed = parseAIRoll(text);
+
+    // Parse choices
     const choices = parseAIChoices(text);
     processed = processed.replace(/\[CHOICE:\s*[^\]]+\]/gi, '');
+
+    // Parse moves
     const moves = parseAIMoves(text);
     processed = processed.replace(/\[MOVE:\s*\S+\s+\d+\s+\d+\]/gi, '');
+
+    // Parse map
     const aiMap = parseAIMap(text);
     processed = processed.replace(/\[MAP_START\][\s\S]*?\[MAP_END\]/gi, '');
 
+    // Apply moves
     for (const move of moves) {
         for (const [id, p] of Object.entries(app.players)) {
             if (p.name.toLowerCase().includes(move.name.toLowerCase())) {
@@ -384,15 +376,46 @@ function processAIResponse(text, shouldBroadcast) {
         }
     }
 
+    // Apply map
     if (aiMap) {
         app.map.setMapFromAI(aiMap);
         app.network.publish('map', { map: app.map.map });
         addSystemMessage('🗺️ Карта создана Мастером!');
     }
 
-    if (choices.length > 0) showChoices(choices);
+    // Show DM message
     addDMMessage(processed);
-    if (shouldBroadcast) app.network.publish('ai', { text: processed });
+
+    // Show choices AFTER the message
+    if (choices.length > 0) {
+        showChoices(choices);
+    } else {
+        // If no [CHOICE:] tags, try to extract choices from numbered lists
+        const autoChoices = extractAutoChoices(text);
+        if (autoChoices.length >= 2) {
+            showChoices(autoChoices);
+        }
+    }
+
+    // Broadcast to other players
+    if (shouldBroadcast) {
+        app.network.publish('ai', { text: processed });
+    }
+}
+
+// Fallback: extract choices from numbered lists like "1. Атаковать" or "- Атаковать"
+function extractAutoChoices(text) {
+    const choices = [];
+    // Match "1. текст" or "1) текст" patterns
+    const regex = /(?:^|\n)\s*(\d+)[.)]\s*(.+)/gm;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+        const choice = match[2].trim();
+        if (choice.length > 3 && choice.length < 100) {
+            choices.push(choice);
+        }
+    }
+    return choices.slice(0, 4); // Max 4 choices
 }
 
 function showChoices(choices) {
@@ -400,18 +423,28 @@ function showChoices(choices) {
     const list = document.getElementById('choicesList');
     list.innerHTML = '';
     panel.classList.remove('hidden');
+
     choices.forEach((choice, i) => {
         const btn = document.createElement('button');
         btn.className = 'choice-btn';
         btn.textContent = `${i+1}. ${choice}`;
         btn.addEventListener('click', () => {
+            // Hide choices immediately
+            panel.classList.add('hidden');
+
+            // Show the choice in chat
             addChatMessage(app.myName, choice, app.myColor);
             app.network.publish('chat', { name: app.myName, text: choice, color: app.myColor });
+
+            // Send to AI
             if (app.ai.apiKey) {
-                if (app.isHost) handleAIRequest(choice, app.myName);
-                else app.network.publish('request-ai', { text: choice, playerName: app.myName });
+                addSystemMessage('🧙 Мастер реагирует...');
+                if (app.isHost) {
+                    handleAIRequest(choice, app.myName);
+                } else {
+                    app.network.publish('request-ai', { text: choice, playerName: app.myName });
+                }
             }
-            panel.classList.add('hidden');
         });
         list.appendChild(btn);
     });
