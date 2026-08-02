@@ -3,100 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📖 Правила — D&D Online</title>
+    <title>D&D Online — Правила D&D 5e</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
 </head>
 <body>
-    <nav class="navbar">
-        <a href="index.html" class="nav-brand">⚔️ D&D Online</a>
-        <div class="nav-links">
-            <a href="index.html">Главная</a>
-            <a href="lobby.html">🎮 Играть</a>
-            <a href="rules.html" class="active">📖 Правила</a>
-            <a href="about.html">О проекте</a>
-        </div>
+    <nav class="landing-nav">
+        <a href="index.html">Главная</a>
+        <a href="lobby.html">Играть</a>
+        <a href="rules.html">Правила</a>
+        <a href="about.html">О проекте</a>
     </nav>
 
-    <main class="rules-page">
-        <h2>📖 Краткие правила D&D 5e</h2>
-        <p class="rules-intro">Всё, что нужно знать для игры. ИИ Ведущий знает полные правила — просто пишите действия!</p>
+    <div class="rules-page" style="padding-top:4rem;">
+        <h1>📖 Правила D&D 5e — Краткий Справочник</h1>
 
         <div class="rules-grid">
             <div class="rule-card">
-                <h3>🎲 Броски кубиков</h3>
-                <p>Формат: <code>NdN+M</code></p>
+                <h2>🎲 Броски Кубиков</h2>
                 <ul>
-                    <li><code>1d20</code> — бросок d20 (проверка)</li>
-                    <li><code>1d20+5</code> — с модификатором</li>
-                    <li><code>2d6+3</code> — урон великоручного меча</li>
-                    <li><code>1d8</code> — урон длинного меча</li>
-                </ul>
-                <p>В чате: <code>/roll 1d20+5</code></p>
-            </div>
-
-            <div class="rule-card">
-                <h3>⚔️ Бой</h3>
-                <ul>
-                    <li><strong>Атака:</strong> бросок d20 + модификатор атаки vs AC цели</li>
-                    <li><strong>Урон:</strong> если атака попадает — бросок урона</li>
-                    <li><strong>Инициатива:</strong> d20 + Ловкость</li>
-                    <li><strong>Действие:</strong> 1 действие + 1 бонусное действие + перемещение за ход</li>
+                    <li><strong>d20</strong> — основной кубик для проверок</li>
+                    <li>Бросок + модификатор vs Сложность (DC)</li>
+                    <li><strong>Натуральная 20</strong> — критический успех!</li>
+                    <li><strong>Натуральная 1</strong> — критическая неудача!</li>
+                    <li>Преимущество: бросьте 2d20, берите больше</li>
+                    <li>Помеха: бросьте 2d20, берите меньше</li>
                 </ul>
             </div>
 
             <div class="rule-card">
-                <h3>✨ Проверки навыков</h3>
+                <h2>📊 Характеристики</h2>
                 <ul>
-                    <li><strong>d20 + модификатор</strong> vs Сложность (DC)</li>
-                    <li>DC 10 — лёгко</li>
-                    <li>DC 15 — средне</li>
-                    <li>DC 20 — сложно</li>
-                    <li>Натуральная 20 — критический успех!</li>
-                    <li>Натуральная 1 — критическая неудача!</li>
+                    <li><strong>СИЛ</strong> — физическая сила, атлетика</li>
+                    <li><strong>ЛОВ</strong> — ловкость, акробатика, скрытность</li>
+                    <li><strong>ТЕЛ</strong> — выносливость, концентрация</li>
+                    <li><strong>ИНТ</strong> — интеллект, знания, магия</li>
+                    <li><strong>МДР</strong> — мудрость, восприятие, проницательность</li>
+                    <li><strong>ХАР</strong> — харизма, убеждение, обман</li>
+                </ul>
+                <p style="margin-top:0.5rem;">Модификатор = (значение - 10) / 2 (округление вниз)</p>
+            </div>
+
+            <div class="rule-card">
+                <h2>⚔️ Бой</h2>
+                <ul>
+                    <li><strong>Инициатива</strong>: d20 + ЛОВ</li>
+                    <li><strong>Действие</strong>: атака, заклинание, рывок и т.д.</li>
+                    <li><strong>Бонусное действие</strong>: одно за ход</li>
+                    <li><strong>Движение</strong>: до скорости (обычно 30 фт.)</li>
+                    <li><strong>Реакция</strong>: одна за раунд</li>
+                    <li><strong>Атака</strong>: d20 + модификатор vs AC цели</li>
+                    <li>Урон: кубик урона + модификатор</li>
                 </ul>
             </div>
 
             <div class="rule-card">
-                <h3>🛡️ Класс Доспеха (AC)</h3>
+                <h2>🛡️ Класс Доспеха (AC)</h2>
                 <ul>
                     <li>Без доспеха: 10 + ЛОВ</li>
                     <li>Кожаный: 11 + ЛОВ</li>
+                    <li>Кольчужная рубаха: 12 + ЛОВ (макс +2)</li>
+                    <li>Чешуйчатый: 14 + ЛОВ (макс +2)</li>
                     <li>Кольчуга: 16</li>
-                    <li>Латные: 18</li>
+                    <li>Латы: 18</li>
+                    <li>Щит: +2 к AC</li>
                 </ul>
             </div>
 
             <div class="rule-card">
-                <h3>🧙 Заклинания</h3>
+                <h2>✨ Заклинания</h2>
                 <ul>
-                    <li><strong>Ячейки:</strong> 1-9 уровень</li>
-                    <li><strong>Сложность:</strong> 8 + модификатор + мастерство</li>
-                    <li><strong>Атака заклинанием:</strong> d20 + модификатор + мастерство</li>
-                    <li>ИИ Ведущий отслеживает ячейки</li>
+                    <li><strong>Ячейки</strong>: 1-9 уровень</li>
+                    <li>Заклинания можно усиливать ячейками выше</li>
+                    <li><strong>Концентрация</strong>: только одно заклинание</li>
+                    <li>При получении урона: спасбросок ТЕЛ (DC 10 или урон/2)</li>
+                    <li><strong>Вероятность</strong>: компонент V — голос, S — жест, M — материал</li>
+                    <li><strong>Атака заклинанием</strong>: d20 + модификатор заклинания</li>
+                    <li><strong>Спасбросок</strong>: DC = 8 + бонус мастерства + модификатор</li>
                 </ul>
             </div>
 
             <div class="rule-card">
-                <h3>🗺️ Управление</h3>
+                <h2>💀 Смерть и Отдых</h2>
                 <ul>
-                    <li><strong>ЛКМ</strong> — рисовать карту (хост)</li>
-                    <li><strong>ПКМ</strong> — двигать токен</li>
-                    <li><strong>Колёсико</strong> — зум</li>
-                    <li><strong>Ctrl+ЛКМ</strong> — панорама</li>
-                    <li><code>/roll 1d20</code> — бросить кубик</li>
-                    <li><code>/start</code> — начать кампанию</li>
+                    <li>0 HP → спасброски смерти (d20, DC 10)</li>
+                    <li>3 успеха → стабилизация</li>
+                    <li>3 неудачи → смерть</li>
+                    <li>Натуральная 20: 1 HP</li>
+                    <li><strong>Короткий отдых</strong>: 1 HD, второй ветер</li>
+                    <li><strong>Длинный отдых</strong>: все HP, ½ HD</li>
+                    <li>Лечение: 1 HD = уровень + модификатор ТЕЛ</li>
+                </ul>
+            </div>
+
+            <div class="rule-card">
+                <h2>🎯 Проверки навыков</h2>
+                <ul>
+                    <li>d20 + бонус мастерства + модификатор</li>
+                    <li>Бонус мастерства: 1-4 ур. = +2, 5-8 = +3...</li>
+                    <li><strong>Атлетика</strong> (СИЛ), <strong>Акробатика</strong> (ЛОВ)</li>
+                    <li><strong>Внимательность</strong> (МДР), <strong>Скрытность</strong> (ЛОВ)</li>
+                    <li><strong>Убеждение</strong> (ХАР), <strong>Обман</strong> (ХАР)</li>
+                    <li><strong>Проницательность</strong> (МДР), <strong>Расследование</strong> (ИНТ)</li>
+                </ul>
+            </div>
+
+            <div class="rule-card">
+                <h2>🎮 Команды в игре</h2>
+                <ul>
+                    <li><strong>/roll 1d20+5</strong> — бросить кубик</li>
+                    <li><strong>/r 1d20+5</strong> — короткая форма</li>
+                    <li><strong>/start</strong> — начать кампанию</li>
+                    <li><strong>/tutorial</strong> — показать обучение</li>
+                    <li><strong>/help</strong> — помощь</li>
+                    <li>Пишите действия в чат свободным текстом</li>
+                    <li>ИИ Мастер реагирует на каждое действие</li>
                 </ul>
             </div>
         </div>
 
-        <div class="rules-tip">
-            <h3>💡 Совет</h3>
-            <p>ИИ Ведущий знает полные правила D&D 5e. Просто описывайте действия персонажа своими словами — Мастер сам определит, какие проверки нужны и что происходит!</p>
+        <div style="text-align:center;margin-top:2rem;">
+            <a href="lobby.html" class="btn-primary">⚔️ Начать приключение</a>
         </div>
-    </main>
-
-    <footer class="footer">
-        <p>⚔️ D&D Online — Бесплатная браузерная D&D платформа</p>
-    </footer>
+    </div>
 </body>
 </html>

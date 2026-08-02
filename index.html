@@ -3,52 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚔️ D&D Online — ИИ Ведущий</title>
+    <title>D&D Online — Приключения ждут</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
 </head>
 <body>
-    <nav class="navbar">
-        <a href="index.html" class="nav-brand">⚔️ D&D Online</a>
-        <div class="nav-links">
-            <a href="index.html" class="active">Главная</a>
-            <a href="lobby.html">🎮 Играть</a>
-            <a href="rules.html">📖 Правила</a>
-            <a href="about.html">О проекте</a>
-        </div>
+    <nav class="landing-nav">
+        <a href="index.html">Главная</a>
+        <a href="lobby.html">Играть</a>
+        <a href="rules.html">Правила</a>
+        <a href="about.html">О проекте</a>
     </nav>
 
-    <main class="hero">
-        <div class="hero-content">
-            <h1>⚔️ D&D Online</h1>
-            <p class="hero-subtitle">Играйте в Dungeons & Dragons прямо в браузере.<br>ИИ Ведущий • Карта • Голосовой чат • Бесплатно</p>
-            <div class="hero-features">
-                <div class="feature-card"><div class="feature-icon">🧙</div><h3>ИИ Ведущий</h3><p>Мастер Подземелий на базе ИИ — описывает мир, ведёт кампанию, управляет NPC и перемещает вас</p></div>
-                <div class="feature-card"><div class="feature-icon">🗺️</div><h3>Карты и генерация</h3><p>Рисуйте подземелья или генерируйте автоматически. Подземелье, пещера, лес, таверна, замок, храм</p></div>
-                <div class="feature-card"><div class="feature-icon">👤</div><h3>Редактор персонажа</h3><p>Раса, класс, предыстория, характеристики. Аватарка генерируется автоматически</p></div>
-                <div class="feature-card"><div class="feature-icon">🎤</div><h3>Голосовой чат</h3><p>Общайтесь голосом прямо в браузере. Индикатор говорящего</p></div>
-                <div class="feature-card"><div class="feature-icon">⚔️</div><h3>Выборы действий</h3><p>ИИ предлагает варианты — выбирайте, что делать дальше</p></div>
-                <div class="feature-card"><div class="feature-icon">📜</div><h3>8 кампаний</h3><p>Проклятый замок, логово дракона, забытый храм, пиратский остров и другие</p></div>
-                <div class="feature-card"><div class="feature-icon">👥</div><h3>Реальное время</h3><p>Видите перемещения друг друга. Броски кубиков видны всем</p></div>
-                <div class="feature-card"><div class="feature-icon">🎲</div><h3>Кубики</h3><p>/roll 1d20+5 — бросок в чате. ИИ автоматически бросает за вас</p></div>
+    <div class="landing">
+        <div class="landing-content">
+            <div class="landing-d20">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="50,5 95,30 95,70 50,95 5,70 5,30" stroke="#c9a84c" stroke-width="2" fill="rgba(201,168,76,0.05)"/>
+                    <polygon points="50,5 95,30 50,50 5,30" stroke="#c9a84c" stroke-width="1" fill="rgba(201,168,76,0.03)"/>
+                    <polygon points="95,30 95,70 50,50" stroke="#c9a84c" stroke-width="1" fill="rgba(201,168,76,0.02)"/>
+                    <polygon points="5,30 50,50 5,70" stroke="#c9a84c" stroke-width="1" fill="rgba(201,168,76,0.02)"/>
+                    <polygon points="50,95 95,70 50,50 5,70" stroke="#c9a84c" stroke-width="1" fill="rgba(201,168,76,0.03)"/>
+                    <text x="50" y="58" text-anchor="middle" fill="#c9a84c" font-family="Cinzel" font-size="22" font-weight="bold">20</text>
+                </svg>
             </div>
-            <div class="hero-actions">
-                <a href="lobby.html" class="btn btn-primary btn-lg">⚔️ Начать игру</a>
-                <a href="rules.html" class="btn btn-secondary btn-lg">📖 Правила</a>
+
+            <h1 class="landing-logo">D&D ONLINE</h1>
+            <p class="landing-subtitle">Приключения ждут за порогом</p>
+
+            <div class="landing-buttons">
+                <a href="lobby.html" class="btn-primary">⚔️ Начать приключение</a>
+                <a href="rules.html" class="btn-secondary">📖 Правила D&D 5e</a>
             </div>
-            <div class="hero-note"><p>🆓 Полностью бесплатно. Без домена. Без подписок. Только браузер.</p></div>
-        </div>
-    </main>
 
-    <section class="howto">
-        <h2>🚀 Как начать</h2>
-        <div class="steps">
-            <div class="step"><div class="step-num">1</div><h3>Создайте персонажа</h3><p>Выберите расу, класс, предысторию, бросьте характеристики</p></div>
-            <div class="step"><div class="step-num">2</div><h3>Выберите кампанию</h3><p>8 историй с предысториями или своя уникальная</p></div>
-            <div class="step"><div class="step-num">3</div><h3>Получите API ключ</h3><p>Бесплатно: <a href="https://console.groq.com/keys" target="_blank">Groq</a> или <a href="https://aistudio.google.com/apikey" target="_blank">Gemini</a></p></div>
-            <div class="step"><div class="step-num">4</div><h3>Играйте!</h3><p>ИИ Ведущий рассказывает историю, вы выбираете действия</p></div>
+            <div class="landing-features">
+                <div class="feature-card">
+                    <div class="feature-icon">🧙</div>
+                    <div class="feature-title">ИИ Мастер</div>
+                    <div class="feature-desc">Ведущий на базе ИИ, который создаёт уникальные истории и реагирует на каждое действие</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">👥</div>
+                    <div class="feature-title">Мультиплеер</div>
+                    <div class="feature-desc">Играйте с друзьями онлайн в реальном времени. Видите друг друга на карте</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🗺️</div>
+                    <div class="feature-title">Карты</div>
+                    <div class="feature-desc">8 типов карт: подземелья, пещеры, леса, замки, храмы и другие</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎭</div>
+                    <div class="feature-title">Персонажи</div>
+                    <div class="feature-desc">30+ рас, 12 классов, аватар от ИИ, полная кастомизация</div>
+                </div>
+            </div>
         </div>
-    </section>
-
-    <footer class="footer"><p>⚔️ D&D Online — Бесплатная браузерная D&D платформа с ИИ Ведущим</p></footer>
+    </div>
 </body>
 </html>

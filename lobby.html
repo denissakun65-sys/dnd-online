@@ -3,271 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎮 Играть — D&D Online</title>
+    <title>D&D Online — Создание персонажа</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
 </head>
-<body>
-    <nav class="navbar">
-        <a href="index.html" class="nav-brand">⚔️ D&D Online</a>
-        <div class="nav-links">
-            <a href="index.html">Главная</a>
-            <a href="lobby.html" class="active">🎮 Играть</a>
-            <a href="rules.html">📖 Правила</a>
-            <a href="about.html">О проекте</a>
-        </div>
-    </nav>
+<body class="lobby-page">
+    <div class="lobby-header">
+        <h1>⚔️ Создание Персонажа</h1>
+        <p>Создайте героя и отправьтесь в приключение</p>
+    </div>
 
-    <main class="lobby-page">
-        <div class="lobby-container">
-            <h2>🎮 Создать персонажа</h2>
-            <p class="lobby-desc">Настройте героя и выберите кампанию</p>
-
-            <div class="lobby-form">
-                <!-- ===== CHARACTER ===== -->
-                <div class="form-section-title">👤 Персонаж</div>
-
-                <div class="char-preview-row">
-                    <div class="char-avatar-box">
-                        <div id="avatarPreview" class="avatar-placeholder">🧙</div>
-                        <img id="avatarImg" class="avatar-img hidden" src="" alt="Avatar">
-                        <button id="regenAvatar" class="avatar-regen" title="Новый аватар">🎲</button>
-                        <div id="avatarLoading" class="avatar-loading hidden">⏳</div>
-                    </div>
-                    <div class="char-name-box">
-                        <input type="text" id="playerName" placeholder="Имя персонажа..." maxlength="20">
-                    </div>
+    <div class="lobby-body">
+        <!-- LEFT COLUMN -->
+        <div style="display:flex;flex-direction:column;gap:1.5rem;">
+            <!-- Character Info -->
+            <div class="lobby-section">
+                <h2>👤 Основная информация</h2>
+                <div class="form-group">
+                    <label>Имя персонажа</label>
+                    <input type="text" id="charName" class="form-input" placeholder="Введите имя..." maxlength="20" value="">
                 </div>
-
-                <div class="form-row">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
                     <div class="form-group">
                         <label>Раса</label>
-                        <select id="playerRace">
-                            <optgroup label="📘 Player's Handbook">
-                                <option value="Человек" data-bonus="str+1,dex+1,con+1,int+1,wis+1,cha+1">👤 Человек</option>
-                                <option value="Эльф" data-bonus="dex+2">🧝 Эльф</option>
-                                <option value="Дварф" data-bonus="con+2">🪓 Дварф</option>
-                                <option value="Полурослик" data-bonus="dex+2">🦶 Полурослик</option>
-                                <option value="Гном" data-bonus="int+2">🔧 Гном</option>
-                                <option value="Полуэльф" data-bonus="cha+2,dex+1,wis+1">🧝 Полуэльф</option>
-                                <option value="Тифлинг" data-bonus="cha+2,int+1">😈 Тифлинг</option>
-                                <option value="Драконорождённый" data-bonus="str+2,cha+1">🐉 Драконорождённый</option>
-                                <option value="Полуорк" data-bonus="str+2,con+1">👹 Полуорк</option>
+                        <select id="charRace" class="form-select">
+                            <optgroup label="📋 Основные (PHB)">
+                                <option value="Человек" data-bonus="STR+1,DEX+1,CON+1,INT+1,WIS+1,CHA+1">Человек</option>
+                                <option value="Эльф" data-bonus="DEX+2,WIS+1">Эльф</option>
+                                <option value="Дварф" data-bonus="CON+2,WIS+1">Дварф</option>
+                                <option value="Халфлинг" data-bonus="DEX+2,CHA+1">Халфлинг</option>
+                                <option value="Гном" data-bonus="INT+2,CON+1">Гном</option>
+                                <option value="Полуэльф" data-bonus="CHA+2,DEX+1,WIS+1">Полуэльф</option>
+                                <option value="Полуорк" data-bonus="STR+2,CON+1">Полуорк</option>
+                                <option value="Тифлинг" data-bonus="CHA+2,INT+1">Тифлинг</option>
+                                <option value="Драконорождённый" data-bonus="STR+2,CHA+1">Драконорождённый</option>
                             </optgroup>
-                            <optgroup label="📗 Volo's Guide">
-                                <option value="Аасимар" data-bonus="wis+2,cha+1">👼 Аасимар</option>
-                                <option value="Фирболг" data-bonus="wis+2,str+1">🌲 Фирболг</option>
-                                <option value="Голиаф" data-bonus="str+2,con+1">🏔️ Голиаф</option>
-                                <option value="Генази (Огонь)" data-bonus="int+2,con+1">🔥 Генази Огня</option>
-                                <option value="Генази (Вода)" data-bonus="wis+2,con+1">💧 Генази Воды</option>
-                                <option value="Генази (Воздух)" data-bonus="dex+2,con+1">💨 Генази Воздуха</option>
-                                <option value="Генази (Земля)" data-bonus="str+2,con+1">🪨 Генази Земли</option>
-                                <option value="Кенку" data-bonus="dex+2,wis+1">🐦 Кенку</option>
-                                <option value="Табакси" data-bonus="dex+2,cha+1">🐱 Табакси</option>
-                                <option value="Тритон" data-bonus="str+2,cha+1">🐠 Тритон</option>
-                                <option value="Животное-фольклор" data-bonus="wis+2,cha+1">🦊 Фольклор</option>
+                            <optgroup label="📖 Volo's Guide">
+                                <option value="Аасимар" data-bonus="WIS+2,CHA+1">Аасимар</option>
+                                <option value="Фирболг" data-bonus="WIS+2,STR+1">Фирболг</option>
+                                <option value="Голиаф" data-bonus="STR+2,CON+1">Голиаф</option>
+                                <option value="Генази (Огонь)" data-bonus="INT+2,CON+1">Генази (Огонь)</option>
+                                <option value="Генази (Вода)" data-bonus="WIS+2,CON+1">Генази (Вода)</option>
+                                <option value="Генази (Земля)" data-bonus="STR+2,CON+1">Генази (Земля)</option>
+                                <option value="Генази (Воздух)" data-bonus="DEX+2,CON+1">Генази (Воздух)</option>
+                                <option value="Кенку" data-bonus="DEX+2,WIS+1">Кенку</option>
+                                <option value="Табакси" data-bonus="DEX+2,CHA+1">Табакси</option>
+                                <option value="Тритон" data-bonus="STR+2,CHA+1">Тритон</option>
                             </optgroup>
-                            <optgroup label="📙 Mordenkainen's">
-                                <option value="Альтернативный Человек" data-bonus="str+1,dex+1,con+1,int+1,wis+1,cha+1">👤 Человек (перемен.)</option>
-                                <option value="Эльф (Тёмный)" data-bonus="dex+2,cha+1">🌑 Тёмный Эльф</option>
-                                <option value="Эльф (Высший)" data-bonus="dex+2,int+1">✨ Высший Эльф</option>
-                                <option value="Эльф (Лесной)" data-bonus="dex+2,wis+1">🌿 Лесной Эльф</option>
-                                <option value="Дварф (Холмовой)" data-bonus="con+2,wis+1">⛰️ Холмовой Дварф</option>
-                                <option value="Дварф (Горный)" data-bonus="con+2,str+2">🏔️ Горный Дварф</option>
-                                <option value="Гном (Лесной)" data-bonus="int+2,dex+1">🌳 Лесной Гном</option>
-                                <option value="Гном (Скальный)" data-bonus="int+2,con+1">🪨 Скальный Гном</option>
-                                <option value="Полурослик (Лёгкий)" data-bonus="dex+2,cha+1">🦶 Лёгкий Полурослик</option>
-                                <option value="Полурослик (Крепкий)" data-bonus="dex+2,con+1">🦶 Крепкий Полурослик</option>
+                            <optgroup label="📖 Mordenkainen's">
+                                <option value="Чанжлинг" data-bonus="CHA+2,DEX+1">Чанжлинг</option>
+                                <option value="Шифтер (Зверь)" data-bonus="DEX+2,WIS+1">Шифтер (Зверь)</option>
+                                <option value="Калаштар" data-bonus="WIS+2,CHA+1">Калаштар</option>
+                                <option value="Гит" data-bonus="INT+2,STR+1">Гит</option>
+                                <option value="Кобольд" data-bonus="DEX+2,STR+1">Кобольд</option>
+                                <option value="Хобгоблин" data-bonus="CON+2,INT+1">Хобгоблин</option>
+                                <option value="Багбир" data-bonus="STR+2,DEX+1">Багбир</option>
+                                <option value="Юань-ти" data-bonus="CHA+2,INT+1">Юань-ти</option>
                             </optgroup>
-                            <optgroup label="📕 Tasha's / Дополнения">
-                                <option value="Чангелинг" data-bonus="cha+2">🦋 Чангелинг</option>
-                                <option value="Локсодон" data-bonus="con+2,wis+1">🐘 Локсодон</option>
-                                <option value="Минотавр" data-bonus="str+2,con+1">🐂 Минотавр</option>
-                                <option value="Симик-Гибрид" data-bonus="con+2,dex+1">🧬 Симик-Гибрид</option>
-                                <option value="Ведалкен" data-bonus="int+2,wis+1">🧪 Ведалкен</option>
-                                <option value="Кобольд" data-bonus="dex+2,str+1">🦎 Кобольд</option>
-                                <option value="Хобгоблин" data-bonus="con+2,int+1">👺 Хобгоблин</option>
-                                <option value="Багбир" data-bonus="str+2,dex+1">🐻 Багбир</option>
-                                <option value="Юань-ти" data-bonus="cha+2,int+1">🐍 Юань-ти</option>
+                            <optgroup label="📖 Tasha's / Другие">
+                                <option value="Локсодон" data-bonus="CON+2,WIS+1">Локсодон</option>
+                                <option value="Симик-гибрид" data-bonus="CON+2,DEX+1">Симик-гибрид</option>
+                                <option value="Ведалкен" data-bonus="INT+2,WIS+1">Ведалкен</option>
+                                <option value="Варфорджед" data-bonus="CON+2,STR+1">Варфорджед</option>
+                                <option value="Леонин" data-bonus="CON+2,STR+1">Леонин</option>
+                                <option value="Сатир" data-bonus="DEX+2,CHA+1">Сатир</option>
+                                <option value="Оулен" data-bonus="WIS+2,STR+1">Оулен</option>
                             </optgroup>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Класс</label>
-                        <select id="playerClass">
-                            <option value="Воин" data-primary="str con">⚔️ Воин</option>
-                            <option value="Маг" data-primary="int">🔮 Маг</option>
-                            <option value="Плут" data-primary="dex">🗡️ Плут</option>
-                            <option value="Жрец" data-primary="wis">✨ Жрец</option>
-                            <option value="Варвар" data-primary="str con">🪓 Варвар</option>
-                            <option value="Паладин" data-primary="str cha">🛡️ Паладин</option>
-                            <option value="Следопыт" data-primary="dex wis">🏹 Следопыт</option>
-                            <option value="Бард" data-primary="cha">🎵 Бард</option>
-                            <option value="Колдун" data-primary="cha">🌀 Колдун</option>
-                            <option value="Чародей" data-primary="cha">💫 Чародей</option>
-                            <option value="Монах" data-primary="dex wis">👊 Монах</option>
-                            <option value="Друид" data-primary="wis">🌿 Друид</option>
-                            <option value="Изобретатель" data-primary="int">⚙️ Изобретатель</option>
+                        <select id="charClass" class="form-select">
+                            <option value="Варвар">⚔️ Варвар</option>
+                            <option value="Бард">🎵 Бард</option>
+                            <option value="Жрец">✝️ Жрец</option>
+                            <option value="Друид">🌿 Друид</option>
+                            <option value="Воин">🛡️ Воин</option>
+                            <option value="Монах">👊 Монах</option>
+                            <option value="Паладин">🦁 Паладин</option>
+                            <option value="Следопыт">🏹 Следопыт</option>
+                            <option value="Плут">🗡️ Плут</option>
+                            <option value="Чародей">✨ Чародей</option>
+                            <option value="Колдун">🔮 Колдун</option>
+                            <option value="Волшебник">📖 Волшебник</option>
                         </select>
                     </div>
                 </div>
-
                 <div class="form-group">
                     <label>Предыстория</label>
-                    <select id="playerBackground">
-                        <option value="Странник">🌍 Странник</option>
-                        <option value="Солдат">⚔️ Солдат</option>
-                        <option value="Преступник">🗡️ Преступник</option>
-                        <option value="Шпион">🕵️ Шпион</option>
-                        <option value="Мудрец">📖 Мудрец</option>
-                        <option value="Артист">🎭 Артист</option>
-                        <option value="Отшельник">🏔️ Отшельник</option>
-                        <option value="Дворянин">👑 Дворянин</option>
-                        <option value="Моряк">⚓ Моряк</option>
-                        <option value="Ремесленник">🔨 Ремесленник</option>
-                        <option value="Рабочий">⚒️ Рабочий</option>
-                        <option value="Культа">🕯️ Член культа</option>
-                        <option value="Сирота">🏚️ Сирота</option>
-                        <option value="Пилигрим">🛤️ Пилигрим</option>
-                        <option value="Раб">⛓️ Бывший раб</option>
+                    <select id="charBackground" class="form-select">
+                        <option value="Странник">Странник</option>
+                        <option value="Аристократ">Аристократ</option>
+                        <option value="Преступник">Преступник</option>
+                        <option value="Мудрец">Мудрец</option>
+                        <option value="Солдат">Солдат</option>
+                        <option value="Целитель">Целитель</option>
+                        <option value="Моряк">Моряк</option>
+                        <option value="Шпион">Шпион</option>
+                        <option value="Наследник">Наследник</option>
+                        <option value="Рабочий">Рабочий</option>
+                        <option value="Отшельник">Отшельник</option>
+                        <option value="Торговец">Торговец</option>
                     </select>
                 </div>
-
                 <div class="form-group">
-                    <label>Цвет токена</label>
-                    <div class="color-picker">
-                        <button class="color-btn selected" data-color="#e74c3c" style="background:#e74c3c"></button>
-                        <button class="color-btn" data-color="#3498db" style="background:#3498db"></button>
-                        <button class="color-btn" data-color="#2ecc71" style="background:#2ecc71"></button>
-                        <button class="color-btn" data-color="#f39c12" style="background:#f39c12"></button>
-                        <button class="color-btn" data-color="#9b59b6" style="background:#9b59b6"></button>
-                        <button class="color-btn" data-color="#1abc9c" style="background:#1abc9c"></button>
-                    </div>
+                    <label>Цвет персонажа</label>
+                    <div class="color-picker" id="colorPicker"></div>
                 </div>
+            </div>
 
-                <!-- ===== STATS ===== -->
-                <div class="form-section-title">📊 Характеристики</div>
-                <div class="stats-info">
-                    <span>Метод: <strong id="statsMethod">Покупка очков</strong></span>
-                    <span>Очки: <strong id="pointsLeft">27</strong>/27</span>
+            <!-- Stats -->
+            <div class="lobby-section">
+                <h2>📊 Характеристики</h2>
+                <div class="stat-method-tabs" id="statMethodTabs">
+                    <button class="stat-method-tab active" data-method="pointbuy">Покупка (27)</button>
+                    <button class="stat-method-tab" data-method="4d6">4d6 min</button>
+                    <button class="stat-method-tab" data-method="standard">Стандарт</button>
                 </div>
-                <div class="stats-row">
-                    <div class="stat-box">
-                        <label>СИЛ</label>
-                        <input type="number" id="statSTR" value="8" min="3" max="20">
-                        <span class="stat-race" id="raceSTR"></span>
-                        <span class="stat-mod" id="modSTR">-1</span>
-                    </div>
-                    <div class="stat-box">
-                        <label>ЛОВ</label>
-                        <input type="number" id="statDEX" value="8" min="3" max="20">
-                        <span class="stat-race" id="raceDEX"></span>
-                        <span class="stat-mod" id="modDEX">-1</span>
-                    </div>
-                    <div class="stat-box">
-                        <label>ТЕЛ</label>
-                        <input type="number" id="statCON" value="8" min="3" max="20">
-                        <span class="stat-race" id="raceCON"></span>
-                        <span class="stat-mod" id="modCON">-1</span>
-                    </div>
-                    <div class="stat-box">
-                        <label>ИНТ</label>
-                        <input type="number" id="statINT" value="8" min="3" max="20">
-                        <span class="stat-race" id="raceINT"></span>
-                        <span class="stat-mod" id="modINT">-1</span>
-                    </div>
-                    <div class="stat-box">
-                        <label>МДР</label>
-                        <input type="number" id="statWIS" value="8" min="3" max="20">
-                        <span class="stat-race" id="raceWIS"></span>
-                        <span class="stat-mod" id="modWIS">-1</span>
-                    </div>
-                    <div class="stat-box">
-                        <label>ХАР</label>
-                        <input type="number" id="statCHA" value="8" min="3" max="20">
-                        <span class="stat-race" id="raceCHA"></span>
-                        <span class="stat-mod" id="modCHA">-1</span>
-                    </div>
-                </div>
-                <div class="stats-buttons">
-                    <button id="rollStats" class="btn btn-sm btn-secondary">🎲 Бросить 4d6</button>
-                    <button id="standardArray" class="btn btn-sm btn-secondary">📋 Стандарт</button>
-                    <button id="pointBuy" class="btn btn-sm btn-secondary active">⚖️ Покупка очков</button>
-                </div>
-                <div id="statsWarning" class="stats-warning hidden"></div>
+                <div class="points-left" id="pointsLeft">Очков: 27</div>
+                <div class="stats-grid" id="statsGrid"></div>
+            </div>
+        </div>
 
-                <!-- ===== CAMPAIGN ===== -->
-                <div class="form-section-title">📜 Кампания</div>
-                <div class="form-group">
-                    <label>Выберите историю</label>
-                    <select id="campaignTheme">
-                        <option value="dark_castle">🏰 Проклятие Тёмного Замка</option>
-                        <option value="dragon_lair">🐉 Хранилище Дракона</option>
-                        <option value="lost_temple">🏛️ Тайна Забытого Храма</option>
-                        <option value="tavern">🍺 Таверна на Перекрёстке</option>
-                        <option value="mad_mage">🧙 Подземелья Безумного Мага</option>
-                        <option value="haunted_forest">🌲 Проклятый Лес</option>
-                        <option value="pirate_island">🏴‍☠️ Остров Пиратов</option>
-                        <option value="custom">✨ Своя история (ИИ придумает)</option>
-                    </select>
-                </div>
-                <div id="campaignDesc" class="campaign-desc">Выберите кампанию, чтобы увидеть описание...</div>
-                <div class="form-group">
-                    <label>Стиль карты</label>
-                    <select id="mapStyle">
-                        <option value="auto">🗺️ Авто (ИИ создаст карту под историю)</option>
-                        <option value="random">🎲 Случайная генерация</option>
-                        <option value="empty">⬜ Пустая (рисуйте сами)</option>
-                    </select>
-                </div>
+        <!-- RIGHT COLUMN -->
+        <div style="display:flex;flex-direction:column;gap:1.5rem;">
+            <!-- Avatar -->
+            <div class="lobby-section" style="text-align:center;">
+                <h2>🎨 Аватар</h2>
+                <div class="avatar-preview" id="avatarPreview">🧙</div>
+                <div class="avatar-prompt" id="avatarPrompt">Нажмите «Сгенерировать» для ИИ-аватара</div>
+                <button class="btn-secondary" id="generateAvatar" style="margin:0.5rem auto;padding:0.5rem 1.5rem;font-size:0.9rem;">✨ Сгенерировать</button>
+            </div>
 
-                <!-- ===== AI ===== -->
-                <div class="form-section-title">🧙 ИИ Ведущий</div>
+            <!-- Campaign -->
+            <div class="lobby-section">
+                <h2>🏰 Кампания</h2>
+                <div class="campaign-grid" id="campaignGrid"></div>
+            </div>
+
+            <!-- Room & API -->
+            <div class="lobby-section">
+                <h2>🌐 Подключение</h2>
                 <div class="form-group">
-                    <label>Провайдер</label>
-                    <select id="aiProvider">
-                        <option value="groq">Groq (быстрый, бесплатно)</option>
+                    <label>ИИ Провайдер</label>
+                    <select id="aiProvider" class="form-select">
+                        <option value="groq">Groq (бесплатно, быстро)</option>
                         <option value="gemini">Google Gemini (бесплатно)</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label>API Ключ</label>
-                    <input type="password" id="apiKey" placeholder="Вставьте ключ API...">
-                    <small>Бесплатно: <a href="https://console.groq.com/keys" target="_blank">Groq</a> или <a href="https://aistudio.google.com/apikey" target="_blank">Gemini</a></small>
-                </div>
-
-                <!-- ===== MODE ===== -->
-                <div class="form-section-title">🎮 Режим</div>
-                <div class="lobby-modes">
-                    <button id="soloPlay" class="mode-card">
-                        <div class="mode-icon">⚔️</div>
-                        <h3>Играть одному</h3>
-                        <p>ИИ Ведущий + карта<br>Работает сразу</p>
-                    </button>
-                    <button id="multiPlay" class="mode-card">
-                        <div class="mode-icon">👥</div>
-                        <h3>С друзьями</h3>
-                        <p>Онлайн + голосовой чат<br>Введите код комнаты</p>
-                    </button>
-                </div>
-                <div id="multiSection" class="multi-section hidden">
-                    <div class="form-group">
-                        <label>Код комнаты</label>
-                        <div class="room-input-group">
-                            <input type="text" id="roomCode" placeholder="Придумайте код (например: dragon)" maxlength="20">
-                            <button id="joinRoom" class="btn btn-primary">🚪 Войти</button>
-                        </div>
-                        <small>Все игроки вводят один и тот же код. Первый — хост.</small>
+                    <input type="password" id="apiKey" class="form-input" placeholder="Вставьте ключ...">
+                    <div style="font-size:0.7rem;color:var(--text-dim);margin-top:0.3rem;">
+                        Groq: <a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent-gold);">console.groq.com/keys</a> |
+                        Gemini: <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent-gold);">aistudio.google.com</a>
                     </div>
                 </div>
+                <div class="form-group">
+                    <label>Код комнаты (для мультиплеера)</label>
+                    <input type="text" id="roomCode" class="form-input" placeholder="Придумайте код или оставьте пустым" maxlength="12">
+                </div>
+                <div class="start-buttons">
+                    <button class="btn-primary" id="startSolo">⚔️ Одиночка</button>
+                    <button class="btn-secondary" id="startOnline">👥 Онлайн</button>
+                </div>
             </div>
-            <div id="lobbyStatus" class="status"></div>
         </div>
-    </main>
+    </div>
 
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-    <script src="js/map.js"></script>
-    <script src="js/ai.js"></script>
-    <script src="js/mqtt-network.js"></script>
     <script src="js/lobby.js"></script>
 </body>
 </html>

@@ -3,98 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚔️ Игра — D&D Online</title>
+    <title>D&D Online — Игра</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
 </head>
-<body class="game-body">
-    <!-- Tutorial Overlay -->
-    <div id="tutorialOverlay" class="tutorial-overlay hidden">
-        <div class="tutorial-card">
-            <div id="tutorialIcon" class="tutorial-icon">🎮</div>
-            <h2 id="tutorialTitle"></h2>
-            <p id="tutorialText"></p>
-            <div class="tutorial-footer">
-                <button id="tutorialPrev" class="btn btn-sm btn-secondary">← Назад</button>
-                <span id="tutorialProgress" class="tutorial-progress">1/10</span>
-                <button id="tutorialNext" class="btn btn-sm btn-primary">Далее →</button>
-            </div>
-            <button id="tutorialSkip" class="tutorial-skip">Пропустить обучение</button>
-        </div>
-    </div>
-
-    <div class="topbar">
+<body class="game-page">
+    <!-- Top Bar -->
+    <div class="game-topbar">
         <div class="topbar-left">
-            <a href="lobby.html" class="btn-tiny">← Лобби</a>
-            <span>Комната: <strong id="roomDisplay"></strong></span>
-            <button id="copyCode" class="btn-tiny" title="Копировать">📋</button>
-            <span id="connectionCount" class="conn-count">1</span>
-            <span id="modeLabel" class="mode-badge"></span>
+            <span class="topbar-logo">🎲 D&D Online</span>
+            <span class="topbar-room" id="roomDisplay" title="Нажмите чтобы скопировать">—</span>
+            <span class="topbar-mode" id="modeLabel">⚔️ Одиночка</span>
+            <span class="topbar-count" id="connectionCount">1</span>
         </div>
         <div class="topbar-right">
-            <button id="toggleMapTools" class="btn-tiny">🗺️ Карта</button>
-            <button id="toggleFog" class="btn-tiny">🌫️ Туман</button>
-            <button id="generateMap" class="btn-tiny">🎲 Генерация</button>
-            <button id="toggleVoice" class="btn-tiny">🎤 Голос</button>
-            <a href="lobby.html" class="btn-tiny btn-danger">Выйти</a>
+            <button class="topbar-btn" id="toggleVoice" title="Голосовой чат">🎤</button>
+            <button class="topbar-btn" id="toggleMic" title="Микрофон">🎙️</button>
+            <button class="topbar-btn" id="toggleFog" title="Туман войны">🌫️</button>
+            <button class="topbar-btn" id="generateMap" title="Генерация карты">🗺️</button>
+            <button class="topbar-btn" id="toggleMapTools" title="Инструменты карты">🔧</button>
+            <a href="lobby.html" class="topbar-btn" title="Выйти">🚪</a>
         </div>
     </div>
 
-    <div class="game-layout">
-        <div class="map-panel">
-            <canvas id="mapCanvas"></canvas>
-            <div id="mapTools" class="map-tools hidden">
-                <div class="tool-group">
-                    <button class="tool-btn active" data-tool="floor" title="Пол">⬜</button>
-                    <button class="tool-btn" data-tool="wall" title="Стена">🧱</button>
-                    <button class="tool-btn" data-tool="water" title="Вода">🌊</button>
-                    <button class="tool-btn" data-tool="lava" title="Лава">🔥</button>
-                    <button class="tool-btn" data-tool="tree" title="Дерево">🌳</button>
-                    <button class="tool-btn" data-tool="door" title="Дверь">🚪</button>
-                    <button class="tool-btn" data-tool="chest" title="Сундук">📦</button>
-                    <button class="tool-btn" data-tool="erase" title="Стереть">🧹</button>
-                </div>
-                <div class="tool-group">
-                    <button id="clearMap" class="tool-btn" title="Очистить">🗑️</button>
-                    <button id="fillFloor" class="tool-btn" title="Залить полом">⬜</button>
-                </div>
-            </div>
+    <!-- Map Area -->
+    <div class="map-area">
+        <canvas id="mapCanvas"></canvas>
+
+        <!-- Map tools floating -->
+        <div class="map-tools-float hidden" id="mapTools">
+            <button class="map-tool-btn active" data-tool="floor" title="Пол">⬜</button>
+            <button class="map-tool-btn" data-tool="wall" title="Стена">🧱</button>
+            <button class="map-tool-btn" data-tool="door" title="Дверь">🚪</button>
+            <button class="map-tool-btn" data-tool="water" title="Вода">💧</button>
+            <button class="map-tool-btn" data-tool="lava" title="Лава">🔥</button>
+            <button class="map-tool-btn" data-tool="tree" title="Дерево">🌳</button>
+            <button class="map-tool-btn" data-tool="chest" title="Сундук">📦</button>
+            <button class="map-tool-btn" data-tool="trap" title="Ловушка">⚠️</button>
+            <button class="map-tool-btn" data-tool="stairs" title="Лестница">🪜</button>
+            <button class="map-tool-btn" data-tool="empty" title="Ластик">🧹</button>
         </div>
 
-        <div class="right-panel">
-            <div id="voicePanel" class="voice-panel hidden">
-                <div class="voice-header">
-                    <h3>🎤 Голосовой чат</h3>
-                    <button id="toggleMic" class="voice-btn mic-on" title="Микрофон">🎙️</button>
-                </div>
-                <div id="voiceUsers" class="voice-users"></div>
-            </div>
-
-            <div class="players-list">
-                <h3>👥 Группа</h3>
-                <div id="playersList"></div>
-            </div>
-
-            <div id="choicesPanel" class="choices-panel hidden">
-                <h3>⚔️ Что вы сделаете?</h3>
-                <div id="choicesList"></div>
-            </div>
-
-            <div class="chat-panel">
-                <div id="chatMessages" class="chat-messages"></div>
-                <div class="chat-input-area">
-                    <input type="text" id="chatInput" placeholder="Действие или /roll 1d20... (/help — помощь)" maxlength="500">
-                    <button id="chatSend" class="btn-send">➤</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Map generation modal -->
-    <div id="genModal" class="modal hidden">
-        <div class="modal-content">
-            <h3>🎲 Генерация карты</h3>
-            <div class="gen-options">
-                <button class="gen-btn" data-gen="dungeon">🏰 Подземелье</button>
+        <!-- Map generation modal -->
+        <div class="map-gen-modal hidden" id="genModal">
+            <h3>🗺️ Генерация карты</h3>
+            <div class="gen-grid">
+                <button class="gen-btn" data-gen="dungeon">⚔️ Подземелье</button>
                 <button class="gen-btn" data-gen="cave">🕳️ Пещера</button>
                 <button class="gen-btn" data-gen="forest">🌲 Лес</button>
                 <button class="gen-btn" data-gen="tavern">🍺 Таверна</button>
@@ -103,14 +57,64 @@
                 <button class="gen-btn" data-gen="village">🏘️ Деревня</button>
                 <button class="gen-btn" data-gen="island">🏝️ Остров</button>
             </div>
-            <button id="closeGenModal" class="btn btn-secondary">Закрыть</button>
+            <div style="text-align:center;margin-top:1rem;">
+                <button class="btn-secondary" id="closeGenModal" style="padding:0.4rem 1rem;font-size:0.85rem;">Закрыть</button>
+            </div>
         </div>
     </div>
 
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <!-- Right Panel -->
+    <div class="right-panel">
+        <!-- Players -->
+        <div class="players-panel">
+            <h3>👥 ИГРОКИ</h3>
+            <div id="playersList"></div>
+        </div>
+
+        <!-- Chat -->
+        <div class="chat-panel">
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="typing-indicator" id="typingIndicator">🧙 Мастер думает...</div>
+        </div>
+
+        <!-- Choices -->
+        <div class="choices-panel" id="choicesPanel">
+            <h4>⚔️ ВЫБЕРИТЕ ДЕЙСТВИЕ</h4>
+            <div id="choicesList"></div>
+        </div>
+
+        <!-- Voice -->
+        <div class="voice-panel" id="voicePanel">
+            <h4 style="font-family:var(--font-heading);font-size:0.75rem;color:var(--text-dim);letter-spacing:0.1em;margin-bottom:0.3rem;">🎤 ГОЛОС</h4>
+            <div class="voice-users" id="voiceUsers"></div>
+        </div>
+
+        <!-- Chat Input -->
+        <div class="chat-input-area">
+            <input type="text" id="chatInput" placeholder="Действие или /roll 1d20...">
+            <button id="chatSend">⚔️</button>
+        </div>
+    </div>
+
+    <!-- Tutorial Overlay -->
+    <div class="tutorial-overlay hidden" id="tutorialOverlay">
+        <div class="tutorial-card">
+            <div class="tutorial-icon" id="tutorialIcon">🎮</div>
+            <div class="tutorial-title" id="tutorialTitle">Добро пожаловать!</div>
+            <div class="tutorial-text" id="tutorialText">Текст</div>
+            <div class="tutorial-progress" id="tutorialProgress">1/6</div>
+            <div class="tutorial-nav">
+                <button class="tutorial-skip" id="tutorialSkip">Пропустить</button>
+                <button class="tutorial-next" id="tutorialNext">Далее →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/mqtt@5.5.0/dist/mqtt.min.js"></script>
+    <script src="js/network.js"></script>
     <script src="js/map.js"></script>
     <script src="js/ai.js"></script>
-    <script src="js/mqtt-network.js"></script>
     <script src="js/game.js"></script>
 </body>
 </html>
