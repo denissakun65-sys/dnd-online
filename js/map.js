@@ -478,183 +478,227 @@ class GameMap {
             const grad = ctx.createRadialGradient(px + cs / 2 - r * 0.3, py + cs / 2 - r * 0.3, 0, px + cs / 2, py + cs / 2, r);
             grad.addColorStop(0, this._lighten(p.color, 40));
             grad.addColorStop(1, p.color);
-            ctx.fillStyle = grad;
-            ctx.fill();
+    // ===== RENDERING — Premium Dark Fantasy =====
+    render() {
+        const ctx = this.ctx, w = this.canvas.width, h = this.canvas.height, cs = this.cellSize * this.zoom;
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#020208';
+        ctx.fillRect(0, 0, w, h);
 
-            // Border
-            ctx.strokeStyle = isMe ? '#fff' : 'rgba(255,255,255,0.5)';
-            ctx.lineWidth = isMe ? 3 : 1.5;
-            ctx.stroke();
+        const startX = Math.max(0, Math.floor(-this.offsetX / cs));
+        const startY = Math.max(0, Math.floor(-this.offsetY / cs));
+        const endX = Math.min(this.gridW, Math.ceil((w - this.offsetX) / cs) + 1);
+        const endY = Math.min(this.gridH, Math.ceil((h - this.offsetY) / cs) + 1);
 
-            // Glow for self
-            if (isMe) {
-                ctx.shadowColor = p.color;
-                ctx.shadowBlur = 15;
-                ctx.beginPath(); ctx.arc(px + cs / 2, py + cs / 2, r, 0, Math.PI * 2); ctx.stroke();
-                ctx.shadowBlur = 0;
+        ctx.save();
+        ctx.translate(this.offsetX, this.offsetY);
+
+        for (let y = startY; y < endY; y++)
+            for (let x = startX; x < endX; x++) {
+                const px = x * cs, py = y * cs;
+                if (this.fogEnabled && this.fogMap[y] && this.fogMap[y][x]) { ctx.fillStyle = '#050510'; ctx.fillRect(px, py, cs, cs); continue; }
+                this._drawTile(ctx, this.map[y][x], px, py, cs, x, y);
             }
 
-            // Name
-            if (cs > 16) {
-                ctx.font = `bold ${Math.max(8, cs * 0.28)}px ${getComputedStyle(document.body).fontFamily}`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'top';
-                ctx.fillStyle = 'white';
-                ctx.strokeStyle = 'black';
-                ctx.lineWidth = 2.5;
-                ctx.strokeText(p.name, px + cs / 2, py + cs + 1);
-                ctx.fillText(p.name, px + cs / 2, py + cs + 1);
-            }
-        }
-
-        // NPCs (enemies, allies, neutrals)
+        // NPCs first (under players)
         for (const [id, npc] of Object.entries(this.npcs)) {
             if (this.fogEnabled && this.fogMap[npc.y] && this.fogMap[npc.y][npc.x]) continue;
-            const px = npc.x * cs, py = npc.y * cs;
-            const r = cs * 0.35;
-
-            let color, symbol;
-            if (npc.type === 'enemy') { color = '#c0392b'; symbol = '💀'; }
-            else if (npc.type === 'ally') { color = '#27ae60'; symbol = '🛡'; }
-            else if (npc.type === 'boss') { color = '#8e44ad'; symbol = '👹'; }
-            else { color = '#2980b9'; symbol = '👤'; }
-
-            // Shadow
-            ctx.fillStyle = 'rgba(0,0,0,0.4)';
-            ctx.beginPath(); ctx.ellipse(px + cs / 2, py + cs * 0.85, r * 0.8, r * 0.3, 0, 0, Math.PI * 2); ctx.fill();
-
-            // Body - diamond shape for enemies, circle for others
-            ctx.beginPath();
-            if (npc.type === 'enemy' || npc.type === 'boss') {
-                // Diamond shape
-                ctx.moveTo(px + cs / 2, py + cs * 0.15);
-                ctx.lineTo(px + cs * 0.85, py + cs / 2);
-                ctx.lineTo(px + cs / 2, py + cs * 0.85);
-                ctx.lineTo(px + cs * 0.15, py + cs / 2);
-                ctx.closePath();
-            } else {
-                ctx.arc(px + cs / 2, py + cs / 2, r, 0, Math.PI * 2);
-            }
-            const grad = ctx.createRadialGradient(px + cs / 2 - r * 0.3, py + cs / 2 - r * 0.3, 0, px + cs / 2, py + cs / 2, r);
-            grad.addColorStop(0, this._lighten(color, 40));
-            grad.addColorStop(1, color);
-            ctx.fillStyle = grad;
-            ctx.fill();
-
-            // Border
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            // Glow
-            ctx.shadowColor = color;
-            ctx.shadowBlur = 10;
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-
-            // Name
-            if (cs > 16) {
-                ctx.font = `bold ${Math.max(7, cs * 0.24)}px ${getComputedStyle(document.body).fontFamily}`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'top';
-                ctx.fillStyle = color;
-                ctx.strokeStyle = 'black';
-                ctx.lineWidth = 2.5;
-                ctx.strokeText(npc.name, px + cs / 2, py + cs + 1);
-                ctx.fillText(npc.name, px + cs / 2, py + cs + 1);
-            }
+            this._drawNPC(ctx, npc, cs);
         }
+
+        // Players on top
+        for (const [id, p] of Object.entries(this.players)) {
+            if (this.fogEnabled && this.fogMap[p.y] && this.fogMap[p.y][p.x]) continue;
+            this._drawPlayer(ctx, id, p, cs);
+        }
+
         ctx.restore();
     }
 
-    _drawTile(ctx, tile, px, py, cs) {
-        const m = cs * 0.1;
+    _drawPlayer(ctx, id, p, cs) {
+        const px = p.x * cs, py = p.y * cs, isMe = id === this.myPlayerId;
+        const r = cs * 0.36, cx = px + cs / 2, cy = py + cs / 2;
+
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.beginPath(); ctx.ellipse(cx, py + cs * 0.88, r * 0.9, r * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+
+        if (isMe) { ctx.shadowColor = p.color; ctx.shadowBlur = 20; ctx.beginPath(); ctx.arc(cx, cy, r + 4, 0, Math.PI * 2); ctx.strokeStyle = p.color; ctx.lineWidth = 2; ctx.stroke(); ctx.shadowBlur = 0; }
+
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        const grad = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.35, r * 0.1, cx, cy, r);
+        grad.addColorStop(0, this._lighten(p.color, 60)); grad.addColorStop(0.5, p.color); grad.addColorStop(1, this._darken(p.color, 30));
+        ctx.fillStyle = grad; ctx.fill();
+        ctx.strokeStyle = isMe ? '#fff' : 'rgba(255,255,255,0.4)'; ctx.lineWidth = isMe ? 2.5 : 1; ctx.stroke();
+
+        ctx.beginPath(); ctx.arc(cx - r * 0.2, cy - r * 0.25, r * 0.3, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fill();
+
+        if (cs > 14) {
+            const fs = Math.max(8, cs * 0.26);
+            ctx.font = 'bold ' + fs + 'px Cinzel, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            const tw = ctx.measureText(p.name).width;
+            ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(cx - tw / 2 - 3, py + cs + 2, tw + 6, fs + 2);
+            ctx.fillStyle = isMe ? '#fff' : p.color; ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+            ctx.strokeText(p.name, cx, py + cs + 2); ctx.fillText(p.name, cx, py + cs + 2);
+        }
+    }
+
+    _drawNPC(ctx, npc, cs) {
+        const px = npc.x * cs, py = npc.y * cs, cx = px + cs / 2, cy = py + cs / 2, r = cs * 0.34;
+        let color;
+        if (npc.type === 'enemy') color = '#e74c3c';
+        else if (npc.type === 'boss') color = '#9b59b6';
+        else if (npc.type === 'ally') color = '#2ecc71';
+        else color = '#3498db';
+
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.beginPath(); ctx.ellipse(cx, py + cs * 0.88, r * 0.9, r * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+
+        ctx.shadowColor = color; ctx.shadowBlur = 12;
+        ctx.beginPath();
+        if (npc.type === 'enemy' || npc.type === 'boss') { const s = r * 1.1; ctx.moveTo(cx, cy - s); ctx.lineTo(cx + s * 0.8, cy); ctx.lineTo(cx, cy + s * 0.8); ctx.lineTo(cx - s * 0.8, cy); ctx.closePath(); }
+        else ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        const grad = ctx.createRadialGradient(cx, cy - r * 0.3, r * 0.1, cx, cy, r);
+        grad.addColorStop(0, this._lighten(color, 50)); grad.addColorStop(1, this._darken(color, 20));
+        ctx.fillStyle = grad; ctx.fill(); ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke(); ctx.shadowBlur = 0;
+
+        ctx.beginPath(); ctx.arc(cx - r * 0.15, cy - r * 0.2, r * 0.25, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fill();
+
+        if (cs > 14) {
+            const fs = Math.max(7, cs * 0.22);
+            ctx.font = 'bold ' + fs + 'px Cinzel, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            const tw = ctx.measureText(npc.name).width;
+            ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(cx - tw / 2 - 3, py + cs + 2, tw + 6, fs + 2);
+            ctx.fillStyle = color; ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+            ctx.strokeText(npc.name, cx, py + cs + 2); ctx.fillText(npc.name, cx, py + cs + 2);
+        }
+    }
+
+    _drawTile(ctx, tile, px, py, cs, gx, gy) {
+        const m = cs * 0.06;
         switch (tile) {
-            case TILE.EMPTY: ctx.fillStyle = '#080808'; ctx.fillRect(px, py, cs, cs); break;
+            case TILE.EMPTY:
+                ctx.fillStyle = '#06060e'; ctx.fillRect(px, py, cs, cs);
+                if ((gx * 7 + gy * 13) % 11 === 0) { ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fillRect(px + cs * 0.3, py + cs * 0.4, 1, 1); }
+                break;
             case TILE.FLOOR:
-                ctx.fillStyle = '#3a3a5c'; ctx.fillRect(px, py, cs, cs);
-                ctx.fillStyle = 'rgba(255,255,255,0.03)'; ctx.fillRect(px, py, cs, 1); ctx.fillRect(px, py, 1, cs);
-                ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(px + cs - 1, py, 1, cs); ctx.fillRect(px, py + cs - 1, cs, 1);
+                ctx.fillStyle = '#2a2a42'; ctx.fillRect(px, py, cs, cs);
+                ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1; ctx.strokeRect(px + 0.5, py + 0.5, cs - 1, cs - 1);
+                const shade = ((gx * 3 + gy * 7) % 5) * 2;
+                ctx.fillStyle = 'rgba(255,255,255,' + (0.01 + shade * 0.003) + ')'; ctx.fillRect(px + 1, py + 1, cs / 2 - 1, cs / 2 - 1);
+                ctx.fillStyle = 'rgba(255,255,255,0.02)'; ctx.fillRect(px, py, cs, 1); ctx.fillRect(px, py, 1, cs);
                 break;
             case TILE.WALL:
-                ctx.fillStyle = '#5c4033'; ctx.fillRect(px, py, cs, cs);
-                ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1;
-                ctx.strokeRect(px + m, py + m, cs - m * 2, cs / 2 - m);
-                ctx.strokeRect(px + cs / 4, py + cs / 2, cs / 2, cs / 2 - m);
-                ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fillRect(px, py, cs, 2);
+                ctx.fillStyle = '#4a3528'; ctx.fillRect(px, py, cs, cs);
+                ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1;
+                ctx.strokeRect(px + m, py + m, cs * 0.45, cs * 0.4 - m);
+                ctx.strokeRect(px + cs * 0.5, py + m, cs * 0.45 - m, cs * 0.4 - m);
+                ctx.strokeRect(px + cs * 0.25, py + cs * 0.45, cs * 0.45, cs * 0.45 - m);
+                ctx.fillStyle = 'rgba(255,200,150,0.06)'; ctx.fillRect(px, py, cs, 2);
+                ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(px, py + cs - 2, cs, 2);
                 break;
             case TILE.WATER:
-                ctx.fillStyle = '#1a5276'; ctx.fillRect(px, py, cs, cs);
-                ctx.strokeStyle = 'rgba(100,200,255,0.2)'; ctx.lineWidth = 1;
+                const wGrad = ctx.createLinearGradient(px, py, px + cs, py + cs);
+                wGrad.addColorStop(0, '#0d3b5e'); wGrad.addColorStop(1, '#145a8a');
+                ctx.fillStyle = wGrad; ctx.fillRect(px, py, cs, cs);
+                ctx.strokeStyle = 'rgba(120,200,255,0.2)'; ctx.lineWidth = 1;
                 ctx.beginPath(); ctx.moveTo(px, py + cs * 0.3); ctx.quadraticCurveTo(px + cs * 0.5, py + cs * 0.2, px + cs, py + cs * 0.3); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(px, py + cs * 0.6); ctx.quadraticCurveTo(px + cs * 0.5, py + cs * 0.7, px + cs, py + cs * 0.6); ctx.stroke();
-                ctx.fillStyle = 'rgba(100,200,255,0.1)'; ctx.fillRect(px + cs * 0.2, py + cs * 0.1, cs * 0.3, cs * 0.15);
+                ctx.fillStyle = 'rgba(150,220,255,0.08)'; ctx.fillRect(px + cs * 0.15, py + cs * 0.08, cs * 0.25, cs * 0.1);
                 break;
             case TILE.LAVA:
-                ctx.fillStyle = '#922b21'; ctx.fillRect(px, py, cs, cs);
-                ctx.fillStyle = 'rgba(255,100,0,0.3)'; ctx.fillRect(px + m, py + m, cs - m * 2, cs - m * 2);
-                ctx.fillStyle = 'rgba(255,200,0,0.2)'; ctx.fillRect(px + cs * 0.3, py + cs * 0.3, cs * 0.4, cs * 0.4);
-                ctx.strokeStyle = 'rgba(255,200,0,0.4)'; ctx.lineWidth = 1;
-                ctx.beginPath(); ctx.moveTo(px + cs * 0.2, py + cs * 0.3); ctx.lineTo(px + cs * 0.5, py + cs * 0.5); ctx.lineTo(px + cs * 0.8, py + cs * 0.4); ctx.stroke();
+                ctx.fillStyle = '#6b1a0a'; ctx.fillRect(px, py, cs, cs);
+                const lGrad = ctx.createRadialGradient(px + cs / 2, py + cs / 2, 0, px + cs / 2, py + cs / 2, cs * 0.5);
+                lGrad.addColorStop(0, 'rgba(255,200,0,0.5)'); lGrad.addColorStop(0.4, 'rgba(255,100,0,0.3)'); lGrad.addColorStop(1, 'rgba(100,20,0,0)');
+                ctx.fillStyle = lGrad; ctx.fillRect(px, py, cs, cs);
+                ctx.strokeStyle = 'rgba(255,200,0,0.5)'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(px + cs * 0.15, py + cs * 0.25); ctx.lineTo(px + cs * 0.5, py + cs * 0.5); ctx.lineTo(px + cs * 0.85, py + cs * 0.35); ctx.stroke();
+                ctx.shadowColor = '#ff6600'; ctx.shadowBlur = 8; ctx.fillStyle = 'rgba(255,150,0,0.15)'; ctx.fillRect(px, py, cs, cs); ctx.shadowBlur = 0;
                 break;
             case TILE.TREE:
-                ctx.fillStyle = '#5d4037'; ctx.fillRect(px + cs * 0.4, py + cs * 0.5, cs * 0.2, cs * 0.5);
-                ctx.fillStyle = '#1e6e3e'; ctx.beginPath(); ctx.arc(px + cs / 2, py + cs * 0.35, cs * 0.35, 0, Math.PI * 2); ctx.fill();
-                ctx.fillStyle = 'rgba(100,255,100,0.15)'; ctx.beginPath(); ctx.arc(px + cs * 0.4, py + cs * 0.3, cs * 0.15, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#1a3a1a'; ctx.fillRect(px, py, cs, cs);
+                ctx.fillStyle = '#4a3520'; ctx.fillRect(px + cs * 0.4, py + cs * 0.5, cs * 0.2, cs * 0.45);
+                ctx.fillStyle = '#1a5a2a'; ctx.beginPath(); ctx.arc(px + cs / 2, py + cs * 0.35, cs * 0.38, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#1e6e3e'; ctx.beginPath(); ctx.arc(px + cs * 0.45, py + cs * 0.3, cs * 0.28, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'rgba(100,255,100,0.08)'; ctx.beginPath(); ctx.arc(px + cs * 0.38, py + cs * 0.28, cs * 0.15, 0, Math.PI * 2); ctx.fill();
                 break;
             case TILE.DOOR:
-                ctx.fillStyle = '#3a3a5c'; ctx.fillRect(px, py, cs, cs);
-                ctx.fillStyle = '#7d6608'; ctx.fillRect(px + m, py + m, cs - m * 2, cs - m * 2);
-                ctx.fillStyle = '#f1c40f'; ctx.beginPath(); ctx.arc(px + cs * 0.7, py + cs / 2, cs * 0.06, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#2a2a42'; ctx.fillRect(px, py, cs, cs);
+                ctx.fillStyle = '#3a2a15'; ctx.fillRect(px + m, py + m, cs - m * 2, cs - m * 2);
+                ctx.fillStyle = '#6b5020'; ctx.fillRect(px + cs * 0.15, py + cs * 0.1, cs * 0.7, cs * 0.8);
+                ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1;
+                ctx.strokeRect(px + cs * 0.2, py + cs * 0.15, cs * 0.6, cs * 0.35);
+                ctx.strokeRect(px + cs * 0.2, py + cs * 0.55, cs * 0.6, cs * 0.3);
+                ctx.fillStyle = '#d4a017'; ctx.beginPath(); ctx.arc(px + cs * 0.72, py + cs * 0.5, cs * 0.06, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.beginPath(); ctx.arc(px + cs * 0.71, py + cs * 0.48, cs * 0.025, 0, Math.PI * 2); ctx.fill();
                 break;
             case TILE.CHEST:
-                ctx.fillStyle = '#3a3a5c'; ctx.fillRect(px, py, cs, cs);
-                ctx.fillStyle = '#8b6914'; ctx.fillRect(px + cs * 0.15, py + cs * 0.35, cs * 0.7, cs * 0.5);
-                ctx.fillStyle = '#b7950b'; ctx.fillRect(px + cs * 0.15, py + cs * 0.25, cs * 0.7, cs * 0.15);
-                ctx.fillStyle = '#f1c40f'; ctx.fillRect(px + cs * 0.42, py + cs * 0.45, cs * 0.16, cs * 0.12);
+                ctx.fillStyle = '#2a2a42'; ctx.fillRect(px, py, cs, cs);
+                ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(px + cs * 0.12, py + cs * 0.55, cs * 0.76, cs * 0.15);
+                ctx.fillStyle = '#6b5020'; ctx.fillRect(px + cs * 0.12, py + cs * 0.35, cs * 0.76, cs * 0.45);
+                ctx.fillStyle = '#8b6914'; ctx.fillRect(px + cs * 0.1, py + cs * 0.22, cs * 0.8, cs * 0.18);
+                ctx.fillStyle = '#d4a017'; ctx.fillRect(px + cs * 0.1, py + cs * 0.38, cs * 0.8, cs * 0.04);
+                ctx.fillRect(px + cs * 0.1, py + cs * 0.65, cs * 0.8, cs * 0.04);
+                ctx.fillRect(px + cs * 0.42, py + cs * 0.42, cs * 0.16, cs * 0.14);
+                ctx.fillStyle = 'rgba(255,220,100,0.08)'; ctx.fillRect(px + cs * 0.15, py + cs * 0.25, cs * 0.3, cs * 0.1);
                 break;
-            case TILE.SAND: ctx.fillStyle = '#c2b280'; ctx.fillRect(px, py, cs, cs); break;
-            case TILE.PATH: ctx.fillStyle = '#4a4a6a'; ctx.fillRect(px, py, cs, cs); break;
+            case TILE.SAND: ctx.fillStyle = '#b8a870'; ctx.fillRect(px, py, cs, cs); ctx.fillStyle = 'rgba(200,180,120,0.2)'; ctx.fillRect(px + cs * 0.2, py + cs * 0.3, cs * 0.15, cs * 0.1); break;
+            case TILE.PATH: ctx.fillStyle = '#3a3a55'; ctx.fillRect(px, py, cs, cs); ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 1; ctx.strokeRect(px + 0.5, py + 0.5, cs - 1, cs - 1); break;
             case TILE.BRIDGE:
-                ctx.fillStyle = '#1a5276'; ctx.fillRect(px, py, cs, cs);
-                ctx.fillStyle = '#8b6914'; ctx.fillRect(px + cs * 0.1, py + cs * 0.1, cs * 0.8, cs * 0.8);
+                ctx.fillStyle = '#0d3b5e'; ctx.fillRect(px, py, cs, cs);
+                ctx.fillStyle = '#6b5020'; ctx.fillRect(px + cs * 0.05, py + cs * 0.05, cs * 0.9, cs * 0.9);
                 ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1;
-                for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(px + cs * 0.1, py + cs * (0.2 + i * 0.25)); ctx.lineTo(px + cs * 0.9, py + cs * (0.2 + i * 0.25)); ctx.stroke(); }
+                for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(px + cs * 0.05, py + cs * (0.15 + i * 0.22)); ctx.lineTo(px + cs * 0.95, py + cs * (0.15 + i * 0.22)); ctx.stroke(); }
+                ctx.fillStyle = '#4a3520'; ctx.fillRect(px + cs * 0.05, py + cs * 0.05, cs * 0.9, cs * 0.06); ctx.fillRect(px + cs * 0.05, py + cs * 0.89, cs * 0.9, cs * 0.06);
                 break;
             case TILE.TRAP:
-                ctx.fillStyle = '#3a3a5c'; ctx.fillRect(px, py, cs, cs);
-                ctx.strokeStyle = 'rgba(231,76,60,0.5)'; ctx.lineWidth = 2;
+                ctx.fillStyle = '#2a2a42'; ctx.fillRect(px, py, cs, cs);
+                ctx.strokeStyle = 'rgba(200,50,50,0.3)'; ctx.lineWidth = 1.5;
                 ctx.beginPath(); ctx.moveTo(px + cs * 0.2, py + cs * 0.2); ctx.lineTo(px + cs * 0.8, py + cs * 0.8); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(px + cs * 0.8, py + cs * 0.2); ctx.lineTo(px + cs * 0.2, py + cs * 0.8); ctx.stroke();
+                ctx.fillStyle = 'rgba(200,50,50,0.15)'; ctx.fillRect(px + cs * 0.35, py + cs * 0.35, cs * 0.3, cs * 0.3);
                 break;
             case TILE.STAIRS:
-                ctx.fillStyle = '#3a3a5c'; ctx.fillRect(px, py, cs, cs);
-                ctx.fillStyle = '#2c3e50'; for (let i = 0; i < 4; i++) ctx.fillRect(px + cs * 0.2, py + cs * (0.2 + i * 0.18), cs * 0.6, cs * 0.12);
+                ctx.fillStyle = '#2a2a42'; ctx.fillRect(px, py, cs, cs);
+                ctx.fillStyle = '#3a3a5c';
+                for (let i = 0; i < 5; i++) { const sw = cs * 0.6 - i * cs * 0.08; const sx = px + (cs - sw) / 2; ctx.fillRect(sx, py + cs * (0.1 + i * 0.17), sw, cs * 0.12); ctx.fillStyle = 'rgba(255,255,255,0.03)'; ctx.fillRect(sx, py + cs * (0.1 + i * 0.17), sw, 1); ctx.fillStyle = '#3a3a5c'; }
                 break;
             case TILE.THRONE:
-                ctx.fillStyle = '#3a3a5c'; ctx.fillRect(px, py, cs, cs);
-                ctx.fillStyle = '#8b6914'; ctx.fillRect(px + cs * 0.2, py + cs * 0.15, cs * 0.6, cs * 0.7);
-                ctx.fillStyle = '#f1c40f'; ctx.beginPath(); ctx.moveTo(px + cs * 0.3, py + cs * 0.3); ctx.lineTo(px + cs * 0.5, py + cs * 0.15); ctx.lineTo(px + cs * 0.7, py + cs * 0.3); ctx.fill();
+                ctx.fillStyle = '#2a2a42'; ctx.fillRect(px, py, cs, cs);
+                ctx.fillStyle = '#6b5020'; ctx.fillRect(px + cs * 0.15, py + cs * 0.08, cs * 0.7, cs * 0.8);
+                ctx.fillStyle = '#8b2020'; ctx.fillRect(px + cs * 0.2, py + cs * 0.5, cs * 0.6, cs * 0.25);
+                ctx.fillStyle = '#d4a017'; ctx.beginPath();
+                ctx.moveTo(px + cs * 0.25, py + cs * 0.25); ctx.lineTo(px + cs * 0.35, py + cs * 0.08); ctx.lineTo(px + cs * 0.5, py + cs * 0.2); ctx.lineTo(px + cs * 0.65, py + cs * 0.08); ctx.lineTo(px + cs * 0.75, py + cs * 0.25); ctx.closePath(); ctx.fill();
+                ctx.fillStyle = '#6b5020'; ctx.fillRect(px + cs * 0.1, py + cs * 0.45, cs * 0.1, cs * 0.35); ctx.fillRect(px + cs * 0.8, py + cs * 0.45, cs * 0.1, cs * 0.35);
                 break;
             case TILE.BED:
-                ctx.fillStyle = '#3a3a5c'; ctx.fillRect(px, py, cs, cs);
-                ctx.fillStyle = '#6d4c41'; ctx.fillRect(px + cs * 0.1, py + cs * 0.2, cs * 0.8, cs * 0.65);
-                ctx.fillStyle = '#ddd'; ctx.fillRect(px + cs * 0.15, py + cs * 0.25, cs * 0.3, cs * 0.2);
-                ctx.fillStyle = '#3498db'; ctx.fillRect(px + cs * 0.15, py + cs * 0.5, cs * 0.7, cs * 0.3);
+                ctx.fillStyle = '#2a2a42'; ctx.fillRect(px, py, cs, cs);
+                ctx.fillStyle = '#4a3520'; ctx.fillRect(px + cs * 0.08, py + cs * 0.15, cs * 0.84, cs * 0.72);
+                ctx.fillStyle = '#ddd8cc'; ctx.fillRect(px + cs * 0.12, py + cs * 0.2, cs * 0.3, cs * 0.2);
+                ctx.fillStyle = '#2a4a7a'; ctx.fillRect(px + cs * 0.12, py + cs * 0.45, cs * 0.76, cs * 0.35);
+                ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fillRect(px + cs * 0.12, py + cs * 0.45, cs * 0.76, 2);
                 break;
             case TILE.TABLE:
-                ctx.fillStyle = '#3a3a5c'; ctx.fillRect(px, py, cs, cs);
-                ctx.fillStyle = '#5d4037'; ctx.fillRect(px + cs * 0.1, py + cs * 0.3, cs * 0.8, cs * 0.15);
-                ctx.fillRect(px + cs * 0.15, py + cs * 0.45, cs * 0.08, cs * 0.35);
-                ctx.fillRect(px + cs * 0.77, py + cs * 0.45, cs * 0.08, cs * 0.35);
+                ctx.fillStyle = '#2a2a42'; ctx.fillRect(px, py, cs, cs);
+                ctx.fillStyle = '#5d4037'; ctx.fillRect(px + cs * 0.08, py + cs * 0.28, cs * 0.84, cs * 0.18);
+                ctx.fillStyle = 'rgba(255,255,255,0.04)'; ctx.fillRect(px + cs * 0.08, py + cs * 0.28, cs * 0.84, 2);
+                ctx.fillStyle = '#4a3520'; ctx.fillRect(px + cs * 0.12, py + cs * 0.46, cs * 0.06, cs * 0.38); ctx.fillRect(px + cs * 0.82, py + cs * 0.46, cs * 0.06, cs * 0.38);
+                ctx.fillStyle = 'rgba(200,180,100,0.15)'; ctx.fillRect(px + cs * 0.35, py + cs * 0.32, cs * 0.15, cs * 0.1);
                 break;
-            default: ctx.fillStyle = '#080808'; ctx.fillRect(px, py, cs, cs);
+            default: ctx.fillStyle = '#06060e'; ctx.fillRect(px, py, cs, cs);
         }
     }
 
     _lighten(hex, amount) {
         let r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
         r = Math.min(255, r + amount); g = Math.min(255, g + amount); b = Math.min(255, b + amount);
+        return '#' + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + b.toString(16).padStart(2, '0');
+    }
+
+    _darken(hex, amount) {
+        let r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+        r = Math.max(0, r - amount); g = Math.max(0, g - amount); b = Math.max(0, b - amount);
         return '#' + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + b.toString(16).padStart(2, '0');
     }
 }
