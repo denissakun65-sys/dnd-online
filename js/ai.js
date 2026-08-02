@@ -191,31 +191,56 @@ ${camp.encounters}`;
         const fullMsg = playerName ? `${playerName}: ${userMessage}` : userMessage;
         const messages = this._buildMessages(fullMsg);
 
-        try {
-            let response = this.provider === 'groq'
-                ? await this._callGroq(messages)
-                : await this._callGemini(messages);
+        const maxRetries = 4;
+        let lastError = null;
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                let response = this.provider === 'groq'
+                    ? await this._callGroq(messages)
+                    : await this._callGemini(messages);
 
-            this.history.push({ role: 'user', content: fullMsg });
-            this.history.push({ role: 'assistant', content: response });
-            while (this.history.length > this.maxHistory) this.history.shift();
+                this.history.push({ role: 'user', content: fullMsg });
+                this.history.push({ role: 'assistant', content: response });
+                while (this.history.length > this.maxHistory) this.history.shift();
 
-            return response;
-        } catch (err) {
-            return `❌ Ошибка ИИ: ${err.message}`;
-        } finally {
-            this.isGenerating = false;
-            if (this.onTyping) this.onTyping(false);
+                this.isGenerating = false;
+                if (this.onTyping) this.onTyping(false);
+                return response;
+            } catch (err) {
+                lastError = err;
+                const is429 = err.is429 || (err.message && err.message.includes('429'));
+                const isRateLimit = err.message && (err.message.includes('rate_limit') || err.message.includes('Rate limit'));
+                if ((is429 || isRateLimit) && attempt < maxRetries - 1) {
+                    // Exponential backoff: 2s, 4s, 8s
+                    const delay = Math.pow(2, attempt + 1) * 1000;
+                    if (this.onTyping) this.onTyping(false);
+                    if (typeof showToast === 'function') showToast('⏳ Лимит API, повтор через ' + (delay / 1000) + 'с... (попытка ' + (attempt + 2) + '/' + maxRetries + ')', 'warning', delay);
+                    await new Promise(r => setTimeout(r, delay));
+                    if (this.onTyping) this.onTyping(true);
+                    continue;
+                }
+                this.isGenerating = false;
+                if (this.onTyping) this.onTyping(false);
+                return `❌ Ошибка ИИ: ${err.message}`;
+            }
         }
+        this.isGenerating = false;
+        if (this.onTyping) this.onTyping(false);
+        return '❌ Не удалось получить ответ ИИ после ' + maxRetries + ' попыток.' + (lastError ? ' (' + lastError.message + ')' : '');
     }
 
     async _callGroq(messages) {
         const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.apiKey}` },
-            body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages, max_tokens: 2000, temperature: 0.9 })
+            body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages, max_tokens: 1500, temperature: 0.9 })
         });
-        if (!res.ok) { const e = await res.text(); throw new Error(`Groq ${res.status}: ${e}`); }
+        if (!res.ok) {
+            const e = await res.text();
+            const err = new Error(`Groq ${res.status}: ${e}`);
+            err.is429 = res.status === 429;
+            throw err;
+        }
         const data = await res.json();
         return data.choices[0].message.content;
     }
@@ -234,9 +259,14 @@ ${camp.encounters}`;
         }
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.apiKey}`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 2000, temperature: 0.9 } })
+            body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 1500, temperature: 0.9 } })
         });
-        if (!res.ok) { const e = await res.text(); throw new Error(`Gemini ${res.status}: ${e}`); }
+        if (!res.ok) {
+            const e = await res.text();
+            const err = new Error(`Gemini ${res.status}: ${e}`);
+            err.is429 = res.status === 429;
+            throw err;
+        }
         const data = await res.json();
         return data.candidates[0].content.parts[0].text;
     }

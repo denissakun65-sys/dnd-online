@@ -18,8 +18,14 @@ const app = {
     soundEnabled: true, soundCtx: null,
     minimapVisible: false,
     keysDown: new Set(),
+    // Anti-spam: rate limiting
+    lastActionTime: 0,
+    actionCooldown: 3000, // 3 seconds between actions
     lastMoveTime: 0,
     moveCooldown: 150, // ms between WASD moves
+    actionCount: 0,
+    actionCountReset: 0,
+    maxActionsPerMinute: 20, // max 20 actions per minute
 };
 
 const TUTORIAL = [
@@ -352,7 +358,9 @@ function setupQuickActions() {
                 return;
             }
 
-            // Send to AI
+            // Send to AI — check anti-spam
+            if (!canAct()) return;
+            recordAction();
             playSound(action === 'attack' ? 'attack' : action === 'heal' ? 'heal' : 'toast');
             addChatMessage(app.myName, text, app.myColor);
             try { app.network.publish('chat', { name: app.myName, text, color: app.myColor }); } catch (e) { }
@@ -830,6 +838,33 @@ function updateConnectionCount() {
     if (el) el.textContent = app.isSolo ? '1' : Object.keys(app.players).length + '/4';
 }
 
+// ===== ANTI-SPAM CHECK =====
+function canAct() {
+    const now = Date.now();
+    // Reset action counter every minute
+    if (now - app.actionCountReset > 60000) {
+        app.actionCount = 0;
+        app.actionCountReset = now;
+    }
+    // Check per-minute limit
+    if (app.actionCount >= app.maxActionsPerMinute) {
+        showToast('⚠️ Слишком много действий! Подождите немного.', 'warning', 3000);
+        return false;
+    }
+    // Check per-action cooldown
+    if (now - app.lastActionTime < app.actionCooldown) {
+        const wait = Math.ceil((app.actionCooldown - (now - app.lastActionTime)) / 1000);
+        showToast('⏳ Подождите ' + wait + 'с перед следующим действием', 'warning', 2000);
+        return false;
+    }
+    return true;
+}
+
+function recordAction() {
+    app.lastActionTime = Date.now();
+    app.actionCount++;
+}
+
 // ===== CHAT =====
 function sendChat() {
     if (app.aiBusy) return;
@@ -864,7 +899,9 @@ function sendChat() {
     if (text.toLowerCase() === '/hp') { showToast('❤️ HP: ' + app.hp + '/' + app.maxHp + ' | 🛡️ AC: ' + app.ac, 'info', 3000); return; }
     if (text.toLowerCase() === '/inv') { toggleInventory(); return; }
 
-    // Regular message
+    // Regular message — check anti-spam
+    if (!canAct()) return;
+    recordAction();
     addChatMessage(app.myName, text, app.myColor);
     try { app.network.publish('chat', { name: app.myName, text, color: app.myColor }); } catch (e) { }
 
@@ -1097,6 +1134,8 @@ function showChoices(choices) {
         btn.textContent = (i + 1) + '. ' + choice;
         btn.addEventListener('click', () => {
             panel.classList.remove('visible');
+            if (!canAct()) return;
+            recordAction();
             addChatMessage(app.myName, choice, app.myColor);
             try { app.network.publish('chat', { name: app.myName, text: choice, color: app.myColor }); } catch (e) { }
             if (app.ai.apiKey) {
