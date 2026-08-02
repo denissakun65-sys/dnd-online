@@ -42,12 +42,13 @@ class Network {
     }
 
     // ===== MULTIPLAYER =====
-    connect(roomCode, playerName, playerColor) {
+    connect(roomCode, playerName, playerColor, charData) {
         this.isSolo = false;
         this.roomCode = roomCode.toLowerCase().replace(/[^a-z0-9]/g, '');
         this.myId = this._genId();       // ONE source of truth
         this.myName = playerName;
         this.myColor = playerColor;
+        this._charData = charData || null;
         this._connectFired = false;
 
         const topic = `dnd-online/${this.roomCode}`;
@@ -84,7 +85,8 @@ class Network {
                     this.publish('join', {
                         playerId: this.myId,
                         name: this.myName,
-                        color: this.myColor
+                        color: this.myColor,
+                        charData: this._charData || null
                     });
 
                     // Fire onConnect ONCE

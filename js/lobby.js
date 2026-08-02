@@ -182,7 +182,9 @@ function generateAvatar() {
     const name = document.getElementById('charName').value.trim() || 'Герой';
     const race = document.getElementById('charRace').value;
     const charClass = document.getElementById('charClass').value;
-    const prompt = `D&D fantasy portrait, ${race} ${charClass}, dark background, detailed face, epic lighting, digital art`;
+    const bg = document.getElementById('charBackground').value;
+    // Include name in prompt to make each avatar unique
+    const prompt = `D&D fantasy portrait of ${name}, ${race} ${charClass}, ${bg} background, dark fantasy, detailed face, epic lighting, digital art, character sheet style`;
 
     const preview = document.getElementById('avatarPreview');
     const promptEl = document.getElementById('avatarPrompt');
@@ -192,7 +194,8 @@ function generateAvatar() {
     btn.textContent = '⏳ Генерация...';
     promptEl.textContent = prompt;
 
-    const seed = Date.now().toString(36);
+    // Use name + random for unique seed
+    const seed = name.toLowerCase().replace(/\s+/g, '_') + '_' + Math.random().toString(36).substr(2, 8);
     const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=256&height=256&seed=${seed}&nologo=true`;
 
     const img = new Image();
@@ -202,7 +205,7 @@ function generateAvatar() {
         preview.appendChild(img);
         btn.disabled = false;
         btn.textContent = '✨ Сгенерировать';
-        promptEl.textContent = 'Аватар готов!';
+        promptEl.textContent = 'Аватар готов! (' + name + ')';
     };
     img.onerror = () => {
         preview.textContent = '🧙';

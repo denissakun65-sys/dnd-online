@@ -138,7 +138,7 @@ function init() {
     if (app.isSolo) {
         app.network.connectSolo();
     } else {
-        app.network.connect(app.roomCode, app.myName, app.myColor);
+        app.network.connect(app.roomCode, app.myName, app.myColor, app.charData);
         setTimeout(() => {
             if (Object.keys(app.players).length <= 1 && !app.isHost) {
                 app.isHost = true;
@@ -273,7 +273,7 @@ function handleNetMessage(msg) {
         switch (msg.type) {
             case 'join':
                 if (msg.playerId && msg.playerId !== app.myId) {
-                    addPlayer(msg.playerId, msg.name, msg.color, false, null);
+                    addPlayer(msg.playerId, msg.name, msg.color, false, msg.charData || null);
                     addSystemMessage('👋 ' + msg.name + ' присоединился!');
                     updateConnectionCount();
                     if (app.isHost) {
@@ -364,9 +364,12 @@ function updatePlayersList() {
     for (const [id, p] of Object.entries(app.players)) {
         const div = document.createElement('div');
         div.className = 'player-item';
+        const avatar = (p.charData && p.charData.avatarUrl)
+            ? '<img src="' + p.charData.avatarUrl + '" style="width:24px;height:24px;border-radius:50%;object-fit:cover;margin-right:4px;">'
+            : '<span class="player-dot" style="background:' + p.color + '"></span>';
         const ci = p.charData ? '<span class="player-class">' + p.charData.race + ' ' + p.charData.class + '</span>' : '';
         const hb = p.isHost ? '<span class="player-host">👑</span>' : '';
-        div.innerHTML = '<span class="player-dot" style="background:' + p.color + '"></span><span>' + p.name + '</span>' + ci + hb;
+        div.innerHTML = avatar + '<span>' + p.name + '</span>' + ci + hb;
         list.appendChild(div);
     }
 }
