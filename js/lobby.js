@@ -36,6 +36,9 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function setupLobby() {
+    // IMPORTANT: declare statNames FIRST before any function that uses it
+    var statNames = ['STR','DEX','CON','INT','WIS','CHA'];
+
     // Color picker
     document.querySelectorAll('.color-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
@@ -48,7 +51,6 @@ function setupLobby() {
     var raceSelect = document.getElementById('playerRace');
     var classSelect = document.getElementById('playerClass');
     var nameInput = document.getElementById('playerName');
-    var statNames = ['STR','DEX','CON','INT','WIS','CHA'];
 
     // Race bonus
     function updateRaceBonus() {
