@@ -430,6 +430,7 @@ function sendChat() {
 async function handleAIRequest(text, playerName) {
     if (app.aiBusy) { addSystemMessage('⏳ Подождите...'); return; }
     try {
+        // Always update map context so AI knows where players are
         if (app.ai.updateMapContext && app.map.getMapDescription) {
             app.ai.updateMapContext(app.map.getMapDescription());
         }
@@ -451,7 +452,18 @@ async function startCampaign() {
         stats: p.charData?.stats || { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 }
     }));
     app.ai.setCharacters(chars);
-    addSystemMessage('🧙 Мастер начинает кампанию...');
+
+    // Pass map description to AI so it knows what's on the map
+    if (app.map && app.map.getMapDescription) {
+        app.ai.updateMapContext(app.map.getMapDescription());
+    }
+
+    const camp = AI_DM.CAMPAIGNS[app.campaignTheme];
+    if (camp) {
+        addSystemMessage('🧙 Мастер начинает кампанию: ' + camp.name);
+    } else {
+        addSystemMessage('🧙 Мастер начинает кампанию...');
+    }
 
     try {
         const response = await app.ai.startCampaign(chars.map(c => c.name));
@@ -496,7 +508,11 @@ function processAIResponse(text, shouldBroadcast) {
             }
         }
 
-        // Apply NPCs
+        // Apply NPCs — log them for clarity
+        if (aiNPCs.length > 0) {
+            const npcNames = aiNPCs.map(n => n.name + ' (' + n.type + ')').join(', ');
+            addSystemMessage('👤 Появились: ' + npcNames);
+        }
         for (const npc of aiNPCs) {
             app.map.addNPC('npc_' + npc.name, npc.name, npc.x, npc.y, npc.type);
             try { app.network.publish('npc', { action: 'add', name: npc.name, type: npc.type, x: npc.x, y: npc.y }); } catch (e) { }
@@ -515,13 +531,15 @@ function processAIResponse(text, shouldBroadcast) {
             try { app.network.publish('npc', { action: 'dead', name: name }); } catch (e) { }
         }
 
-        // Apply AI map only if it's valid (not all zeros)
-        if (aiMap && isValidMap(aiMap)) {
+        // Apply AI map — BUT only if we don't already have a good map
+        // The pre-generated map matches the campaign, so prefer it
+        if (aiMap && isValidMap(aiMap) && !app.mapHasGoodContent()) {
             app.map.setMapFromAI(aiMap);
             try { app.network.publish('map', { map: app.map.map }); } catch (e) { }
             addSystemMessage('🗺️ Карта создана Мастером!');
         } else if (aiMap) {
-            addSystemMessage('⚠️ Карта от ИИ некорректна, используем сгенерированную');
+            // AI generated a map but we already have a good one — ignore it
+            console.log('[AI] Map from AI ignored — using pre-generated map');
         }
 
         // Show message
@@ -560,6 +578,18 @@ function isValidMap(mapData) {
         }
     }
     return nonZero > mapData.length * 2; // At least 2 non-zero cells per row
+}
+
+// Check if the current map has good content (not just empty)
+function mapHasGoodContent() {
+    if (!app.map || !app.map.map) return false;
+    let floorCount = 0;
+    for (const row of app.map.map) {
+        for (const cell of row) {
+            if (cell === 1 || cell === 2 || cell === 6) floorCount++; // floor, wall, door
+        }
+    }
+    return floorCount > 100; // Map has substantial content
 }
 
 function showChoices(choices) {
