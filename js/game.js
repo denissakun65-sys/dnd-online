@@ -68,6 +68,12 @@ function init() {
     app.ai.onTyping = (isTyping) => {
         app.aiBusy = isTyping;
         try {
+            // Add mapContext property if missing
+            if (!app.ai.mapContext) app.ai.mapContext = '';
+            if (!app.ai.updateMapContext) {
+                app.ai.updateMapContext = function(desc) { this.mapContext = desc; };
+            }
+            
             let el = document.querySelector('.typing-indicator');
             if (el) el.classList.toggle('visible', isTyping);
             else if (isTyping) {
@@ -301,7 +307,10 @@ function sendChat() {
 async function handleAIRequest(text, playerName) {
     if (app.aiBusy) { addSystemMessage('⏳ Подождите...'); return; }
     try {
-        app.ai.updateMapContext(app.map.getMapDescription());
+        // Update map context safely
+        if (app.ai.updateMapContext && app.map.getMapDescription) {
+            app.ai.updateMapContext(app.map.getMapDescription());
+        }
         const response = await app.ai.generateResponse(text, playerName);
         if (response) processAIResponse(response, true);
     } catch(err) { addSystemMessage('❌ Ошибка ИИ: ' + err.message); }
