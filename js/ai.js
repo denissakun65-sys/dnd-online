@@ -1,14 +1,17 @@
-// ===== ai.js — AI Dungeon Master =====
+// ===== ai.js — AI Dungeon Master with campaigns, choices, map generation =====
 
 class AI_DM {
     constructor() {
         this.provider = 'groq';
         this.apiKey = '';
         this.history = [];
-        this.maxHistory = 40;
+        this.maxHistory = 50;
         this.isGenerating = false;
-        this.onTyping = null;   // callback(isTyping)
-        this.onResponse = null; // callback(text)
+        this.onTyping = null;
+        this.onResponse = null;
+        this.campaignTheme = '';
+        this.characters = [];
+
         this.systemPrompt = `Ты — Мастер Подземелий (Dungeon Master) в игре Dungeons & Dragons 5e. Ты ведёшь игру для группы приключенцев.
 
 ПРАВИЛА:
@@ -23,233 +26,236 @@ class AI_DM {
 - Если игрок описывает действие, определи, нужна ли проверка
 - В бою: управляй монстрами, отслеживай инициативу и HP
 - Давай игрокам выбор и реагируй на их действия
-- Длина ответа: 2-4 абзаца для описаний, 1-2 для быстрых реакций`;
+- Длина ответа: 2-4 абзаца для описаний, 1-2 для быстрых реакций
 
-        this.campaignContext = '';
+ВАЖНО — ПРЕДЛОЖЕНИЯ ВЫБОРА:
+После каждого описания ситуации, давай игрокам 2-4 варианта действий в формате:
+[CHOICE: Вариант 1]
+[CHOICE: Вариант 2]
+[CHOICE: Вариант 3]
+
+ВАЖНО — ПЕРЕМЕЩЕНИЕ ИГРОКОВ:
+Когда описываешь, куда идут игроки или куда их ведёт сюжет, используй формат:
+[MOVE: имя_игрока X Y] — где X и Y координаты на карте (0-29)
+
+ВАЖНО — СОЗДАНИЕ КАРТЫ:
+Когда начинаешь кампанию, опиши карту в формате (одна строка = один ряд, числа через пробел):
+[MAP_START]
+0=пусто 1=пол 2=стена 3=вода 4=лава 5=дерево 6=дверь 7=сундук
+[MAP_END]
+Пример: [MAP_START]
+2 2 2 2 2 2
+2 1 1 1 1 2
+2 1 6 1 1 2
+2 2 2 2 2 2
+[MAP_END]`;
     }
 
-    setProvider(provider) {
-        this.provider = provider;
-    }
+    setProvider(p) { this.provider = p; }
+    setApiKey(k) { this.apiKey = k; }
+    setCampaign(theme) { this.campaignTheme = theme; }
+    setCharacters(chars) { this.characters = chars; }
 
-    setApiKey(key) {
-        this.apiKey = key;
-    }
+    // Campaign descriptions
+    static CAMPAIGNS = {
+        dark_castle: {
+            name: '🏰 Проклятие Тёмного Замка',
+            desc: 'Столетия назад лорд Крелл заключил сделку с тёмными силами. Его замок стал проклят, а все жители исчезли. Теперь зловещий свет горит в окнах башни, и пропадают путники. Вы — группа смельчаков, нанятая деревней, чтобы проникнуть в замок и снять проклятие.',
+            backstory: 'Каждый из вас потерял кого-то из-за проклятия замка — кого-то утащила тень, кто-то пропал на дороге. Вы объединились, чтобы покончить с этим злом раз и навсегда.'
+        },
+        dragon_lair: {
+            name: '🐉 Хранилище Дракона',
+            desc: 'Красный дракон Вермитракс обосновался в вулканической горе и собирает несметные сокровища. Король обещал полцарства тому, кто вернёт украденный Артефакт Вечного Пламени из его логова.',
+            backstory: 'Вы — не просто наёмники. Артефакт Вечного Пламени — единственное, что может спасти ваш город от надвигающегося ледяного проклятия. Без него всё замёрзнет в течение месяца.'
+        },
+        lost_temple: {
+            name: '🏛️ Тайна Забытого Храма',
+            desc: 'Древний храм богини Селунэ скрыт в джунглях. Говорят, там хранится источник вечной молодости. Но храм охраняют проклятые стражи и загадки, которые не решали тысячелетия.',
+            backstory: 'Ваша старая наставница — единственный человек, который знает путь к храму — умерла при загадочных обстоятельствах. Перед смертью она передала вам карту и шепнула: "Не дайте им первыми добраться до источника..."'
+        },
+        tavern: {
+            name: '🍺 Таверна на Перекрёстке',
+            desc: 'Таверна "Последний Приют" стоит на перекрёстке всех дорог. Путники, торговцы, авантюристы — все здесь. Но этой ночью разразилась буря, и в таверне произошло убийство. Дверь заперта, убийца среди вас.',
+            backstory: 'Вы все оказались в таверне по разным причинам, но теперь вы заперты вместе с убийцей. Нужно найти его до рассвета — или следующей жертвой станете вы.'
+        },
+        mad_mage: {
+            name: '🧙 Подземелья Безумного Мага',
+            desc: 'Архимаг Терион сошёл с ума и превратил свою башню в лабиринт ловушек, монстров и извращённых экспериментов. Его заклинания угрожают всей реальности.',
+            backstory: 'Терион когда-то был вашим учителем. Вы — его бывшие ученики, единственные, кто знает его магию достаточно хорошо, чтобы противостоять ей. Но готовы ли вы убить своего наставника?'
+        },
+        haunted_forest: {
+            name: '🌲 Проклятый Лес',
+            desc: 'Чёрный Лес Шэдоукуст живёт своей жизнью. Деревья шепчутся, тени движутся, а те кто заходит слишком глубоко — никогда не возвращаются. Но именно там растёт единственный ингредиент для противоядия.',
+            backstory: 'Ваш город отравлен. Чума, насланная культом из леса, убивает по сотне человек в день. Противоядие — Цветок Лунного Света, который растёт только в сердце Проклятого Леса.'
+        },
+        pirate_island: {
+            name: '🏴‍☠️ Остров Пиратов',
+            desc: 'Легендарный пират Капитан Кость закопал сокровища на Острове Черепа. Но остров проклят — каждый закат мёртвые восстанут из песка. У вас одна ночь, чтобы найти клад и выбраться живым.',
+            backstory: 'Вы — наследники Капитана Кости, и у вас есть единственная подлинная часть карты. Но другие пираты тоже ищут клад, и они не собираются делиться.'
+        },
+        custom: {
+            name: '✨ Своя история',
+            desc: 'ИИ Ведущий придумает уникальную историю специально для вашей группы, учитывая ваши персонажей и предпочтения.',
+            backstory: ''
+        }
+    };
 
-    // Set the current map context
-    updateMapContext(mapDescription) {
-        this.campaignContext = mapDescription;
-    }
-
-    // Build messages array for the API
+    // Build messages
     _buildMessages(userMessage) {
-        const messages = [
-            { role: 'system', content: this.systemPrompt }
-        ];
+        const messages = [{ role: 'system', content: this.systemPrompt }];
 
-        if (this.campaignContext) {
+        // Add campaign context
+        if (this.campaignTheme && AI_DM.CAMPAIGNS[this.campaignTheme]) {
+            const camp = AI_DM.CAMPAIGNS[this.campaignTheme];
             messages.push({
                 role: 'system',
-                content: `Текущая ситуация на карте: ${this.campaignContext}`
+                content: `Кампания: ${camp.name}. Описание: ${camp.desc}. Предыстория: ${camp.backstory}`
             });
         }
 
-        // Add conversation history
-        for (const msg of this.history) {
-            messages.push(msg);
+        // Add character info
+        if (this.characters.length > 0) {
+            const charInfo = this.characters.map(c =>
+                `${c.name} — ${c.race} ${c.class} (${c.background}), СИЛ:${c.stats.STR} ЛОВ:${c.stats.DEX} ТЕЛ:${c.stats.CON} ИНТ:${c.stats.INT} МДР:${c.stats.WIS} ХАР:${c.stats.CHA}`
+            ).join('; ');
+            messages.push({ role: 'system', content: `Персонажи: ${charInfo}` });
         }
 
-        // Add the new user message
+        for (const msg of this.history) messages.push(msg);
         messages.push({ role: 'user', content: userMessage });
-
         return messages;
     }
 
-    // Generate DM response
-    async generateResponse(userMessage, playerName = 'Игрок') {
-        if (!this.apiKey) {
-            return '⚠️ API ключ не установлен. Получите бесплатный ключ на console.groq.com или aistudio.google.com';
-        }
-
-        if (this.isGenerating) {
-            return '⏳ Подождите, я уже думаю...';
-        }
+    async generateResponse(userMessage, playerName) {
+        if (!this.apiKey) return '⚠️ API ключ не установлен. Получите бесплатно на console.groq.com/keys';
+        if (this.isGenerating) return '⏳ Подождите, я уже думаю...';
 
         this.isGenerating = true;
         if (this.onTyping) this.onTyping(true);
 
-        const fullMessage = `${playerName}: ${userMessage}`;
-        const messages = this._buildMessages(fullMessage);
+        const fullMsg = playerName ? `${playerName}: ${userMessage}` : userMessage;
+        const messages = this._buildMessages(fullMsg);
 
         try {
-            let response;
-            if (this.provider === 'groq') {
-                response = await this._callGroq(messages);
-            } else if (this.provider === 'gemini') {
-                response = await this._callGemini(messages);
-            } else {
-                response = 'Неизвестный провайдер ИИ';
-            }
+            let response = this.provider === 'groq'
+                ? await this._callGroq(messages)
+                : await this._callGemini(messages);
 
-            // Save to history
-            this.history.push({ role: 'user', content: fullMessage });
+            this.history.push({ role: 'user', content: fullMsg });
             this.history.push({ role: 'assistant', content: response });
-
-            // Trim history if too long
-            while (this.history.length > this.maxHistory) {
-                this.history.shift();
-            }
+            while (this.history.length > this.maxHistory) this.history.shift();
 
             return response;
         } catch (err) {
-            console.error('[AI] Error:', err);
-            return `❌ Ошибка ИИ: ${err.message}. Проверьте API ключ.`;
+            return `❌ Ошибка ИИ: ${err.message}`;
         } finally {
             this.isGenerating = false;
             if (this.onTyping) this.onTyping(false);
         }
     }
 
-    // Groq API call (free, fast)
     async _callGroq(messages) {
         const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.apiKey}`
-            },
-            body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
-                messages: messages,
-                max_tokens: 1000,
-                temperature: 0.85,
-                top_p: 0.9
-            })
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.apiKey}` },
+            body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages, max_tokens: 1200, temperature: 0.85 })
         });
-
-        if (!res.ok) {
-            const err = await res.text();
-            throw new Error(`Groq API ${res.status}: ${err}`);
-        }
-
+        if (!res.ok) throw new Error(`Groq API ${res.status}`);
         const data = await res.json();
         return data.choices[0].message.content;
     }
 
-    // Google Gemini API call (free tier)
     async _callGemini(messages) {
-        // Convert OpenAI format to Gemini format
         const contents = [];
         for (const msg of messages) {
             if (msg.role === 'system') {
-                contents.push({
-                    role: 'user',
-                    parts: [{ text: `[System]: ${msg.content}` }]
-                });
-                contents.push({
-                    role: 'model',
-                    parts: [{ text: 'Понял, я буду следовать этим инструкциям.' }]
-                });
+                contents.push({ role: 'user', parts: [{ text: `[System]: ${msg.content}` }] });
+                contents.push({ role: 'model', parts: [{ text: 'Понял.' }] });
             } else if (msg.role === 'user') {
-                contents.push({
-                    role: 'user',
-                    parts: [{ text: msg.content }]
-                });
+                contents.push({ role: 'user', parts: [{ text: msg.content }] });
             } else {
-                contents.push({
-                    role: 'model',
-                    parts: [{ text: msg.content }]
-                });
+                contents.push({ role: 'model', parts: [{ text: msg.content }] });
             }
         }
-
-        const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.apiKey}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: contents,
-                    generationConfig: {
-                        maxOutputTokens: 1000,
-                        temperature: 0.85
-                    }
-                })
-            }
-        );
-
-        if (!res.ok) {
-            const err = await res.text();
-            throw new Error(`Gemini API ${res.status}: ${err}`);
-        }
-
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.apiKey}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 1200, temperature: 0.85 } })
+        });
+        if (!res.ok) throw new Error(`Gemini API ${res.status}`);
         const data = await res.json();
         return data.candidates[0].content.parts[0].text;
     }
 
-    // Start a new campaign
     async startCampaign(playerNames) {
         this.history = [];
-        const names = playerNames.join(', ');
-        const prompt = `Начни новое приключение для группы: ${names}. Опиши начальную локацию и предложи, что они могут сделать. Не делай вступление слишком длинным.`;
-        return await this.generateResponse(prompt, 'Система');
+        const prompt = `Начни приключение для группы: ${playerNames.join(', ')}. 
+Опиши начальную локацию, предысторию и ситуацию, в которой оказались герои. 
+Предложи 3-4 варианта действий. 
+Также создай карту начальной локации в формате [MAP_START]...[MAP_END].`;
+        return await this.generateResponse(prompt, null);
     }
 }
 
-// ===== Dice Roller =====
+// ===== Dice =====
 function rollDice(notation) {
-    // Parse notation like 2d6+3, 1d20, 3d8-2
     const match = notation.match(/^(\d+)d(\d+)([+-]\d+)?$/i);
     if (!match) return null;
-
-    const count = parseInt(match[1]);
-    const sides = parseInt(match[2]);
-    const modifier = match[3] ? parseInt(match[3]) : 0;
-
+    const count = parseInt(match[1]), sides = parseInt(match[2]), modifier = match[3] ? parseInt(match[3]) : 0;
     if (count < 1 || count > 100 || sides < 2 || sides > 100) return null;
-
     const rolls = [];
-    for (let i = 0; i < count; i++) {
-        rolls.push(Math.floor(Math.random() * sides) + 1);
-    }
-
-    const sum = rolls.reduce((a, b) => a + b, 0) + modifier;
-
-    return {
-        notation: notation,
-        rolls: rolls,
-        modifier: modifier,
-        total: sum
-    };
+    for (let i = 0; i < count; i++) rolls.push(Math.floor(Math.random() * sides) + 1);
+    return { notation, rolls, modifier, total: rolls.reduce((a, b) => a + b, 0) + modifier };
 }
 
-// Format dice result for chat
 function formatDiceResult(result, playerName) {
-    if (!result) return `🎲 Неверная запись. Используйте формат: /roll NdN+M (например: /roll 1d20+5)`;
-    
+    if (!result) return `🎲 Неверная запись. Используйте: /roll 1d20+5`;
     let text = `🎲 ${playerName} бросает ${result.notation}: [${result.rolls.join(', ')}]`;
-    if (result.modifier !== 0) {
-        text += ` ${result.modifier > 0 ? '+' : ''}${result.modifier}`;
-    }
+    if (result.modifier) text += ` ${result.modifier > 0 ? '+' : ''}${result.modifier}`;
     text += ` = **${result.total}**`;
     return text;
 }
 
-// Parse [DICE: NdN+M] from AI response and auto-roll
 function parseAIRoll(text) {
     const diceRegex = /\[DICE:\s*([^\]]+)\]/gi;
     let result = text;
-    const rolls = [];
-    
-    let match;
     while ((match = diceRegex.exec(text)) !== null) {
-        const notation = match[1].trim();
-        const roll = rollDice(notation);
-        if (roll) {
-            rolls.push(roll);
-            result = result.replace(match[0], `🎲 ${roll.total} (${roll.rolls.join(', ')}${roll.modifier ? (roll.modifier > 0 ? '+' : '') + roll.modifier : ''})`);
-        }
+        const roll = rollDice(match[1].trim());
+        if (roll) result = result.replace(match[0], `🎲 ${roll.total} (${roll.rolls.join(',')}${roll.modifier ? (roll.modifier > 0 ? '+' : '') + roll.modifier : ''})`);
     }
-    
-    return { text: result, rolls };
+    return result;
+}
+
+// Parse AI choices from [CHOICE: ...] format
+function parseAIChoices(text) {
+    const choices = [];
+    const regex = /\[CHOICE:\s*([^\]]+)\]/gi;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+        choices.push(match[1].trim());
+    }
+    return choices;
+}
+
+// Parse AI moves from [MOVE: name X Y] format
+function parseAIMoves(text) {
+    const moves = [];
+    const regex = /\[MOVE:\s*(\S+)\s+(\d+)\s+(\d+)\]/gi;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+        moves.push({ name: match[1], x: parseInt(match[2]), y: parseInt(match[3]) });
+    }
+    return moves;
+}
+
+// Parse AI map from [MAP_START]...[MAP_END] format
+function parseAIMap(text) {
+    const match = text.match(/\[MAP_START\]\s*([\s\S]*?)\s*\[MAP_END\]/i);
+    if (!match) return null;
+    const rows = match[1].trim().split('\n');
+    const map = [];
+    for (const row of rows) {
+        const cells = row.trim().split(/\s+/).map(Number);
+        if (cells.length > 0 && !isNaN(cells[0])) map.push(cells);
+    }
+    return map.length > 0 ? map : null;
 }

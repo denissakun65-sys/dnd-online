@@ -19,13 +19,71 @@
 
     <main class="lobby-page">
         <div class="lobby-container">
-            <h2>🎮 Начать игру</h2>
-            <p class="lobby-desc">Заполните данные и выберите режим</p>
+            <h2>🎮 Создать персонажа</h2>
+            <p class="lobby-desc">Настройте героя и выберите кампанию</p>
 
             <div class="lobby-form">
+                <!-- ===== CHARACTER ===== -->
+                <div class="form-section-title">👤 Персонаж</div>
+
+                <div class="char-preview-row">
+                    <div class="char-avatar-box">
+                        <img id="avatarPreview" src="https://api.dicebear.com/9.x/avataaars/svg?seed=hero" alt="Avatar">
+                        <button id="regenAvatar" class="avatar-regen" title="Новый аватар">🎲</button>
+                    </div>
+                    <div class="char-name-box">
+                        <input type="text" id="playerName" placeholder="Имя персонажа..." maxlength="20">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Раса</label>
+                        <select id="playerRace">
+                            <option value="Человек">👤 Человек</option>
+                            <option value="Эльф">🧝 Эльф</option>
+                            <option value="Дварф">🪓 Дварф</option>
+                            <option value="Полурослик">🦶 Полурослик</option>
+                            <option value="Гном">🔧 Гном</option>
+                            <option value="Полуэльф">🧝 Полуэльф</option>
+                            <option value="Тифлинг">😈 Тифлинг</option>
+                            <option value="Драконорождённый">🐉 Драконорождённый</option>
+                            <option value="Орк">👹 Орк</option>
+                            <option value="Аасимар">👼 Аасимар</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Класс</label>
+                        <select id="playerClass">
+                            <option value="Воин">⚔️ Воин</option>
+                            <option value="Маг">🔮 Маг</option>
+                            <option value="Плут">🗡️ Плут</option>
+                            <option value="Жрец">✨ Жрец</option>
+                            <option value="Варвар">🪓 Варвар</option>
+                            <option value="Паладин">🛡️ Паладин</option>
+                            <option value="Следопыт">🏹 Следопыт</option>
+                            <option value="Бард">🎵 Бард</option>
+                            <option value="Колдун">🌀 Колдун</option>
+                            <option value="Монах">👊 Монах</option>
+                            <option value="Друид">🌿 Друид</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="form-group">
-                    <label>Ваше имя</label>
-                    <input type="text" id="playerName" placeholder="Воин, Маг, Плут..." maxlength="20">
+                    <label>Предыстория</label>
+                    <select id="playerBackground">
+                        <option value="Странник">🌍 Странник</option>
+                        <option value="Солдат">⚔️ Солдат</option>
+                        <option value="Преступник">🗡️ Преступник</option>
+                        <option value="Мудрец">📖 Мудрец</option>
+                        <option value="Артист">🎭 Артист</option>
+                        <option value="Отшельник">🏔️ Отшельник</option>
+                        <option value="Дворянин">👑 Дворянин</option>
+                        <option value="Моряк">⚓ Моряк</option>
+                        <option value="Ремесленник">🔨 Ремесленник</option>
+                        <option value="Рабочий">⚒️ Рабочий</option>
+                    </select>
                 </div>
 
                 <div class="form-group">
@@ -40,30 +98,102 @@
                     </div>
                 </div>
 
+                <!-- ===== STATS ===== -->
+                <div class="form-section-title">📊 Характеристики</div>
+                <div class="stats-row">
+                    <div class="stat-box">
+                        <label>СИЛ</label>
+                        <input type="number" id="statSTR" value="10" min="3" max="20">
+                        <span class="stat-mod" id="modSTR">+0</span>
+                    </div>
+                    <div class="stat-box">
+                        <label>ЛОВ</label>
+                        <input type="number" id="statDEX" value="10" min="3" max="20">
+                        <span class="stat-mod" id="modDEX">+0</span>
+                    </div>
+                    <div class="stat-box">
+                        <label>ТЕЛ</label>
+                        <input type="number" id="statCON" value="10" min="3" max="20">
+                        <span class="stat-mod" id="modCON">+0</span>
+                    </div>
+                    <div class="stat-box">
+                        <label>ИНТ</label>
+                        <input type="number" id="statINT" value="10" min="3" max="20">
+                        <span class="stat-mod" id="modINT">+0</span>
+                    </div>
+                    <div class="stat-box">
+                        <label>МДР</label>
+                        <input type="number" id="statWIS" value="10" min="3" max="20">
+                        <span class="stat-mod" id="modWIS">+0</span>
+                    </div>
+                    <div class="stat-box">
+                        <label>ХАР</label>
+                        <input type="number" id="statCHA" value="10" min="3" max="20">
+                        <span class="stat-mod" id="modCHA">+0</span>
+                    </div>
+                </div>
+                <div class="stats-buttons">
+                    <button id="rollStats" class="btn btn-sm btn-secondary">🎲 Бросить кубики</button>
+                    <button id="standardArray" class="btn btn-sm btn-secondary">📋 Стандартный набор</button>
+                    <button id="pointBuy" class="btn btn-sm btn-secondary">⚖️ Покупка очков</button>
+                </div>
+
+                <!-- ===== CAMPAIGN ===== -->
+                <div class="form-section-title">📜 Кампания</div>
                 <div class="form-group">
-                    <label>ИИ Провайдер</label>
+                    <label>Выберите историю</label>
+                    <select id="campaignTheme">
+                        <option value="dark_castle">🏰 Проклятие Тёмного Замка</option>
+                        <option value="dragon_lair">🐉 Хранилище Дракона</option>
+                        <option value="lost_temple">🏛️ Тайна Забытого Храма</option>
+                        <option value="tavern">🍺 Таверна на Перекрёстке</option>
+                        <option value="mad_mage">🧙 Подземелья Безумного Мага</option>
+                        <option value="haunted_forest">🌲 Проклятый Лес</option>
+                        <option value="pirate_island">🏴‍☠️ Остров Пиратов</option>
+                        <option value="custom">✨ Своя история (ИИ придумает)</option>
+                    </select>
+                </div>
+
+                <div id="campaignDesc" class="campaign-desc">
+                    Выберите кампанию, чтобы увидеть описание...
+                </div>
+
+                <div class="form-group">
+                    <label>Стиль карты</label>
+                    <select id="mapStyle">
+                        <option value="auto">🗺️ Авто (ИИ создаст карту под историю)</option>
+                        <option value="random">🎲 Случайная генерация</option>
+                        <option value="empty">⬜ Пустая (рисуйте сами)</option>
+                    </select>
+                </div>
+
+                <!-- ===== AI ===== -->
+                <div class="form-section-title">🧙 ИИ Ведущий</div>
+                <div class="form-group">
+                    <label>Провайдер</label>
                     <select id="aiProvider">
                         <option value="groq">Groq (быстрый, бесплатно)</option>
                         <option value="gemini">Google Gemini (бесплатно)</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label>API Ключ</label>
                     <input type="password" id="apiKey" placeholder="Вставьте ключ API...">
                     <small>Бесплатно: <a href="https://console.groq.com/keys" target="_blank">Groq</a> или <a href="https://aistudio.google.com/apikey" target="_blank">Gemini</a></small>
                 </div>
 
+                <!-- ===== MODE ===== -->
+                <div class="form-section-title">🎮 Режим</div>
                 <div class="lobby-modes">
                     <button id="soloPlay" class="mode-card">
                         <div class="mode-icon">⚔️</div>
                         <h3>Играть одному</h3>
-                        <p>ИИ Ведущий + карта.<br>Работает сразу, без P2P.</p>
+                        <p>ИИ Ведущий + карта<br>Работает сразу</p>
                     </button>
                     <button id="multiPlay" class="mode-card">
                         <div class="mode-icon">👥</div>
                         <h3>С друзьями</h3>
-                        <p>Онлайн через MQTT.<br>Введите код комнаты.</p>
+                        <p>Онлайн + голосовой чат<br>Введите код комнаты</p>
                     </button>
                 </div>
 
@@ -74,7 +204,7 @@
                             <input type="text" id="roomCode" placeholder="Придумайте код (например: dragon)" maxlength="20">
                             <button id="joinRoom" class="btn btn-primary">🚪 Войти</button>
                         </div>
-                        <small>Все игроки вводят один и тот же код. Первый — становится хостом.</small>
+                        <small>Все игроки вводят один и тот же код. Первый — хост.</small>
                     </div>
                 </div>
             </div>

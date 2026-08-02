@@ -18,6 +18,8 @@
         <div class="topbar-right">
             <button id="toggleMapTools" class="btn-tiny">🗺️ Карта</button>
             <button id="toggleFog" class="btn-tiny">🌫️ Туман</button>
+            <button id="generateMap" class="btn-tiny">🎲 Генерация</button>
+            <button id="toggleVoice" class="btn-tiny">🎤 Голос</button>
             <a href="lobby.html" class="btn-tiny btn-danger">Выйти</a>
         </div>
     </div>
@@ -40,14 +42,38 @@
                     <button id="clearMap" class="tool-btn" title="Очистить">🗑️</button>
                     <button id="fillFloor" class="tool-btn" title="Залить полом">⬜</button>
                 </div>
+                <div class="tool-group">
+                    <button id="genDungeon" class="tool-btn" title="Подземелье">🏰</button>
+                    <button id="genCave" class="tool-btn" title="Пещера">🕳️</button>
+                    <button id="genForest" class="tool-btn" title="Лес">🌲</button>
+                    <button id="genTavern" class="tool-btn" title="Таверна">🍺</button>
+                </div>
             </div>
         </div>
 
         <div class="right-panel">
+            <!-- Voice chat -->
+            <div id="voicePanel" class="voice-panel hidden">
+                <div class="voice-header">
+                    <h3>🎤 Голосовой чат</h3>
+                    <button id="toggleMic" class="voice-btn mic-on" title="Микрофон">🎙️</button>
+                </div>
+                <div id="voiceUsers" class="voice-users"></div>
+            </div>
+
+            <!-- Players List -->
             <div class="players-list">
-                <h3>👥 Игроки</h3>
+                <h3>👥 Группа</h3>
                 <div id="playersList"></div>
             </div>
+
+            <!-- Story choices -->
+            <div id="choicesPanel" class="choices-panel hidden">
+                <h3>⚔️ Что вы сделаете?</h3>
+                <div id="choicesList"></div>
+            </div>
+
+            <!-- Chat -->
             <div class="chat-panel">
                 <div id="chatMessages" class="chat-messages"></div>
                 <div class="chat-input-area">
@@ -55,6 +81,24 @@
                     <button id="chatSend" class="btn-send">➤</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Map generation modal -->
+    <div id="genModal" class="modal hidden">
+        <div class="modal-content">
+            <h3>🎲 Генерация карты</h3>
+            <div class="gen-options">
+                <button class="gen-btn" data-gen="dungeon">🏰 Подземелье</button>
+                <button class="gen-btn" data-gen="cave">🕳️ Пещера</button>
+                <button class="gen-btn" data-gen="forest">🌲 Лес</button>
+                <button class="gen-btn" data-gen="tavern">🍺 Таверна</button>
+                <button class="gen-btn" data-gen="castle">🏰 Замок</button>
+                <button class="gen-btn" data-gen="temple">🏛️ Храм</button>
+                <button class="gen-btn" data-gen="village">🏘️ Деревня</button>
+                <button class="gen-btn" data-gen="island">🏝️ Остров</button>
+            </div>
+            <button id="closeGenModal" class="btn btn-secondary">Закрыть</button>
         </div>
     </div>
 
