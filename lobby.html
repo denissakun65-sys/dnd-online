@@ -28,8 +28,10 @@
 
                 <div class="char-preview-row">
                     <div class="char-avatar-box">
-                        <img id="avatarPreview" src="https://api.dicebear.com/9.x/avataaars/svg?seed=hero" alt="Avatar">
+                        <div id="avatarPreview" class="avatar-placeholder">🧙</div>
+                        <img id="avatarImg" class="avatar-img hidden" src="" alt="Avatar">
                         <button id="regenAvatar" class="avatar-regen" title="Новый аватар">🎲</button>
+                        <div id="avatarLoading" class="avatar-loading hidden">⏳</div>
                     </div>
                     <div class="char-name-box">
                         <input type="text" id="playerName" placeholder="Имя персонажа..." maxlength="20">
@@ -40,32 +42,71 @@
                     <div class="form-group">
                         <label>Раса</label>
                         <select id="playerRace">
-                            <option value="Человек">👤 Человек</option>
-                            <option value="Эльф">🧝 Эльф</option>
-                            <option value="Дварф">🪓 Дварф</option>
-                            <option value="Полурослик">🦶 Полурослик</option>
-                            <option value="Гном">🔧 Гном</option>
-                            <option value="Полуэльф">🧝 Полуэльф</option>
-                            <option value="Тифлинг">😈 Тифлинг</option>
-                            <option value="Драконорождённый">🐉 Драконорождённый</option>
-                            <option value="Орк">👹 Орк</option>
-                            <option value="Аасимар">👼 Аасимар</option>
+                            <optgroup label="📘 Player's Handbook">
+                                <option value="Человек" data-bonus="str+1,dex+1,con+1,int+1,wis+1,cha+1">👤 Человек</option>
+                                <option value="Эльф" data-bonus="dex+2">🧝 Эльф</option>
+                                <option value="Дварф" data-bonus="con+2">🪓 Дварф</option>
+                                <option value="Полурослик" data-bonus="dex+2">🦶 Полурослик</option>
+                                <option value="Гном" data-bonus="int+2">🔧 Гном</option>
+                                <option value="Полуэльф" data-bonus="cha+2,dex+1,wis+1">🧝 Полуэльф</option>
+                                <option value="Тифлинг" data-bonus="cha+2,int+1">😈 Тифлинг</option>
+                                <option value="Драконорождённый" data-bonus="str+2,cha+1">🐉 Драконорождённый</option>
+                                <option value="Полуорк" data-bonus="str+2,con+1">👹 Полуорк</option>
+                            </optgroup>
+                            <optgroup label="📗 Volo's Guide">
+                                <option value="Аасимар" data-bonus="wis+2,cha+1">👼 Аасимар</option>
+                                <option value="Фирболг" data-bonus="wis+2,str+1">🌲 Фирболг</option>
+                                <option value="Голиаф" data-bonus="str+2,con+1">🏔️ Голиаф</option>
+                                <option value="Генази (Огонь)" data-bonus="int+2,con+1">🔥 Генази Огня</option>
+                                <option value="Генази (Вода)" data-bonus="wis+2,con+1">💧 Генази Воды</option>
+                                <option value="Генази (Воздух)" data-bonus="dex+2,con+1">💨 Генази Воздуха</option>
+                                <option value="Генази (Земля)" data-bonus="str+2,con+1">🪨 Генази Земли</option>
+                                <option value="Кенку" data-bonus="dex+2,wis+1">🐦 Кенку</option>
+                                <option value="Табакси" data-bonus="dex+2,cha+1">🐱 Табакси</option>
+                                <option value="Тритон" data-bonus="str+2,cha+1">🐠 Тритон</option>
+                                <option value="Животное-фольклор" data-bonus="wis+2,cha+1">🦊 Фольклор</option>
+                            </optgroup>
+                            <optgroup label="📙 Mordenkainen's">
+                                <option value="Альтернативный Человек" data-bonus="str+1,dex+1,con+1,int+1,wis+1,cha+1">👤 Человек (перемен.)</option>
+                                <option value="Эльф (Тёмный)" data-bonus="dex+2,cha+1">🌑 Тёмный Эльф</option>
+                                <option value="Эльф (Высший)" data-bonus="dex+2,int+1">✨ Высший Эльф</option>
+                                <option value="Эльф (Лесной)" data-bonus="dex+2,wis+1">🌿 Лесной Эльф</option>
+                                <option value="Дварф (Холмовой)" data-bonus="con+2,wis+1">⛰️ Холмовой Дварф</option>
+                                <option value="Дварф (Горный)" data-bonus="con+2,str+2">🏔️ Горный Дварф</option>
+                                <option value="Гном (Лесной)" data-bonus="int+2,dex+1">🌳 Лесной Гном</option>
+                                <option value="Гном (Скальный)" data-bonus="int+2,con+1">🪨 Скальный Гном</option>
+                                <option value="Полурослик (Лёгкий)" data-bonus="dex+2,cha+1">🦶 Лёгкий Полурослик</option>
+                                <option value="Полурослик (Крепкий)" data-bonus="dex+2,con+1">🦶 Крепкий Полурослик</option>
+                            </optgroup>
+                            <optgroup label="📕 Tasha's / Дополнения">
+                                <option value="Чангелинг" data-bonus="cha+2">🦋 Чангелинг</option>
+                                <option value="Локсодон" data-bonus="con+2,wis+1">🐘 Локсодон</option>
+                                <option value="Минотавр" data-bonus="str+2,con+1">🐂 Минотавр</option>
+                                <option value="Симик-Гибрид" data-bonus="con+2,dex+1">🧬 Симик-Гибрид</option>
+                                <option value="Ведалкен" data-bonus="int+2,wis+1">🧪 Ведалкен</option>
+                                <option value="Кобольд" data-bonus="dex+2,str+1">🦎 Кобольд</option>
+                                <option value="Хобгоблин" data-bonus="con+2,int+1">👺 Хобгоблин</option>
+                                <option value="Багбир" data-bonus="str+2,dex+1">🐻 Багбир</option>
+                                <option value="Юань-ти" data-bonus="cha+2,int+1">🐍 Юань-ти</option>
+                            </optgroup>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Класс</label>
                         <select id="playerClass">
-                            <option value="Воин">⚔️ Воин</option>
-                            <option value="Маг">🔮 Маг</option>
-                            <option value="Плут">🗡️ Плут</option>
-                            <option value="Жрец">✨ Жрец</option>
-                            <option value="Варвар">🪓 Варвар</option>
-                            <option value="Паладин">🛡️ Паладин</option>
-                            <option value="Следопыт">🏹 Следопыт</option>
-                            <option value="Бард">🎵 Бард</option>
-                            <option value="Колдун">🌀 Колдун</option>
-                            <option value="Монах">👊 Монах</option>
-                            <option value="Друид">🌿 Друид</option>
+                            <option value="Воин" data-primary="str con">⚔️ Воин</option>
+                            <option value="Маг" data-primary="int">🔮 Маг</option>
+                            <option value="Плут" data-primary="dex">🗡️ Плут</option>
+                            <option value="Жрец" data-primary="wis">✨ Жрец</option>
+                            <option value="Варвар" data-primary="str con">🪓 Варвар</option>
+                            <option value="Паладин" data-primary="str cha">🛡️ Паладин</option>
+                            <option value="Следопыт" data-primary="dex wis">🏹 Следопыт</option>
+                            <option value="Бард" data-primary="cha">🎵 Бард</option>
+                            <option value="Колдун" data-primary="cha">🌀 Колдун</option>
+                            <option value="Чародей" data-primary="cha">💫 Чародей</option>
+                            <option value="Монах" data-primary="dex wis">👊 Монах</option>
+                            <option value="Друид" data-primary="wis">🌿 Друид</option>
+                            <option value="Изобретатель" data-primary="int">⚙️ Изобретатель</option>
                         </select>
                     </div>
                 </div>
@@ -76,6 +117,7 @@
                         <option value="Странник">🌍 Странник</option>
                         <option value="Солдат">⚔️ Солдат</option>
                         <option value="Преступник">🗡️ Преступник</option>
+                        <option value="Шпион">🕵️ Шпион</option>
                         <option value="Мудрец">📖 Мудрец</option>
                         <option value="Артист">🎭 Артист</option>
                         <option value="Отшельник">🏔️ Отшельник</option>
@@ -83,6 +125,10 @@
                         <option value="Моряк">⚓ Моряк</option>
                         <option value="Ремесленник">🔨 Ремесленник</option>
                         <option value="Рабочий">⚒️ Рабочий</option>
+                        <option value="Культа">🕯️ Член культа</option>
+                        <option value="Сирота">🏚️ Сирота</option>
+                        <option value="Пилигрим">🛤️ Пилигрим</option>
+                        <option value="Раб">⛓️ Бывший раб</option>
                     </select>
                 </div>
 
@@ -100,43 +146,54 @@
 
                 <!-- ===== STATS ===== -->
                 <div class="form-section-title">📊 Характеристики</div>
+                <div class="stats-info">
+                    <span>Метод: <strong id="statsMethod">Покупка очков</strong></span>
+                    <span>Очки: <strong id="pointsLeft">27</strong>/27</span>
+                </div>
                 <div class="stats-row">
                     <div class="stat-box">
                         <label>СИЛ</label>
-                        <input type="number" id="statSTR" value="10" min="3" max="20">
-                        <span class="stat-mod" id="modSTR">+0</span>
+                        <input type="number" id="statSTR" value="8" min="3" max="20">
+                        <span class="stat-race" id="raceSTR"></span>
+                        <span class="stat-mod" id="modSTR">-1</span>
                     </div>
                     <div class="stat-box">
                         <label>ЛОВ</label>
-                        <input type="number" id="statDEX" value="10" min="3" max="20">
-                        <span class="stat-mod" id="modDEX">+0</span>
+                        <input type="number" id="statDEX" value="8" min="3" max="20">
+                        <span class="stat-race" id="raceDEX"></span>
+                        <span class="stat-mod" id="modDEX">-1</span>
                     </div>
                     <div class="stat-box">
                         <label>ТЕЛ</label>
-                        <input type="number" id="statCON" value="10" min="3" max="20">
-                        <span class="stat-mod" id="modCON">+0</span>
+                        <input type="number" id="statCON" value="8" min="3" max="20">
+                        <span class="stat-race" id="raceCON"></span>
+                        <span class="stat-mod" id="modCON">-1</span>
                     </div>
                     <div class="stat-box">
                         <label>ИНТ</label>
-                        <input type="number" id="statINT" value="10" min="3" max="20">
-                        <span class="stat-mod" id="modINT">+0</span>
+                        <input type="number" id="statINT" value="8" min="3" max="20">
+                        <span class="stat-race" id="raceINT"></span>
+                        <span class="stat-mod" id="modINT">-1</span>
                     </div>
                     <div class="stat-box">
                         <label>МДР</label>
-                        <input type="number" id="statWIS" value="10" min="3" max="20">
-                        <span class="stat-mod" id="modWIS">+0</span>
+                        <input type="number" id="statWIS" value="8" min="3" max="20">
+                        <span class="stat-race" id="raceWIS"></span>
+                        <span class="stat-mod" id="modWIS">-1</span>
                     </div>
                     <div class="stat-box">
                         <label>ХАР</label>
-                        <input type="number" id="statCHA" value="10" min="3" max="20">
-                        <span class="stat-mod" id="modCHA">+0</span>
+                        <input type="number" id="statCHA" value="8" min="3" max="20">
+                        <span class="stat-race" id="raceCHA"></span>
+                        <span class="stat-mod" id="modCHA">-1</span>
                     </div>
                 </div>
                 <div class="stats-buttons">
-                    <button id="rollStats" class="btn btn-sm btn-secondary">🎲 Бросить кубики</button>
-                    <button id="standardArray" class="btn btn-sm btn-secondary">📋 Стандартный набор</button>
-                    <button id="pointBuy" class="btn btn-sm btn-secondary">⚖️ Покупка очков</button>
+                    <button id="rollStats" class="btn btn-sm btn-secondary">🎲 Бросить 4d6</button>
+                    <button id="standardArray" class="btn btn-sm btn-secondary">📋 Стандарт</button>
+                    <button id="pointBuy" class="btn btn-sm btn-secondary active">⚖️ Покупка очков</button>
                 </div>
+                <div id="statsWarning" class="stats-warning hidden"></div>
 
                 <!-- ===== CAMPAIGN ===== -->
                 <div class="form-section-title">📜 Кампания</div>
@@ -153,11 +210,7 @@
                         <option value="custom">✨ Своя история (ИИ придумает)</option>
                     </select>
                 </div>
-
-                <div id="campaignDesc" class="campaign-desc">
-                    Выберите кампанию, чтобы увидеть описание...
-                </div>
-
+                <div id="campaignDesc" class="campaign-desc">Выберите кампанию, чтобы увидеть описание...</div>
                 <div class="form-group">
                     <label>Стиль карты</label>
                     <select id="mapStyle">
@@ -196,7 +249,6 @@
                         <p>Онлайн + голосовой чат<br>Введите код комнаты</p>
                     </button>
                 </div>
-
                 <div id="multiSection" class="multi-section hidden">
                     <div class="form-group">
                         <label>Код комнаты</label>
@@ -208,7 +260,6 @@
                     </div>
                 </div>
             </div>
-
             <div id="lobbyStatus" class="status"></div>
         </div>
     </main>

@@ -1,4 +1,4 @@
-// ===== game.js — Main game controller with all features =====
+// ===== game.js — Main game controller with tutorial =====
 
 const app = {
     network: null, map: null, ai: null,
@@ -7,15 +7,67 @@ const app = {
     players: {}, playerOrder: [],
     charData: null, campaignTheme: '',
     voiceEnabled: false, micEnabled: true,
-    voiceStream: null, voiceConnections: {},
-    audioContext: null, analyser: null
+    voiceStream: null, audioContext: null, analyser: null,
+    tutorialStep: 0
 };
+
+const TUTORIAL = [
+    {
+        title: '⚔️ Добро пожаловать в D&D Online!',
+        text: 'Это игра в Dungeons & Dragons с ИИ Мастером Подземелий. Я расскажу, как всё работает!',
+        icon: '🎮'
+    },
+    {
+        title: '🗺️ Карта',
+        text: 'Слева — карта мира. Ваш токен — цветной кружок с подсветкой. Нажмите ЛЕВУЮ кнопку мыши на пустое место, чтобы переместить туда персонажа. Колёсико — зум. Ctrl+ЛКМ — передвинуть камеру.',
+        icon: '🗺️'
+    },
+    {
+        title: '🧙 ИИ Ведущий',
+        text: 'Мастер Подземелий описывает мир, управляет NPC и монстрами. Он видит вашу карту и знает, где вы находитесь. Мастер может перемещать ваш токен, если сюжет ведёт вас в другое место.',
+        icon: '🧙'
+    },
+    {
+        title: '💬 Чат',
+        text: 'Пишите действия в чат — что делает ваш персонаж. Например: "Осматриваю комнату", "Атакую гоблина мечом", "Пробую открыть дверь". ИИ Ведущий ответит и определит, нужны ли броски кубиков.',
+        icon: '💬'
+    },
+    {
+        title: '⚔️ Выборы',
+        text: 'Иногда ИИ предложит варианты действий — они появятся в панели "Что вы сделаете?". Просто нажмите на вариант, чтобы выбрать его. Или напишите свой вариант в чат!',
+        icon: '⚔️'
+    },
+    {
+        title: '🎲 Кубики',
+        text: 'Напишите /roll 1d20+5 чтобы бросить кубик. Формат: /roll NdN+M. Примеры: /roll 1d20 (проверка), /roll 2d6+3 (урон), /roll 1d8 (заклинание). ИИ тоже бросает кубики автоматически!',
+        icon: '🎲'
+    },
+    {
+        title: '🗺️ Редактирование карты',
+        text: 'Нажмите кнопку "🗺️ Карта" сверху — появятся инструменты рисования. ЛКМ рисует, выберите тип клетки: стена 🧱, дверь 🚪, сундук 📦, вода 🌊 и т.д. Кнопка "🎲 Генерация" создаст случайную карту.',
+        icon: '🗺️'
+    },
+    {
+        title: '🎤 Голосовой чат',
+        text: 'Если играете с друзьями — нажмите "🎤 Голос" для голосового чата. Кнопка 🎙️ включает/выключает микрофон. Индикатор показывает, кто говорит.',
+        icon: '🎤'
+    },
+    {
+        title: '🌫️ Туман войны',
+        text: 'Нажмите "🌫️ Туман" чтобы скрыть неисследованные области. Карта открывается по мере перемещения вашего персонажа. Это создаёт атмосферу неизведанности!',
+        icon: '🌫️'
+    },
+    {
+        title: '✅ Готово!',
+        text: 'Пишите действия в чат, и ИИ Ведущий начнёт приключение! Если что-то забыли — нажмите /help. Удачи, герой! 🎲',
+        icon: '🎉'
+    }
+];
 
 document.addEventListener('DOMContentLoaded', () => {
     const mode = sessionStorage.getItem('dnd-mode');
     if (!mode) { window.location.href = 'lobby.html'; return; }
 
-    // Load character data
     const charJson = sessionStorage.getItem('dnd-char');
     app.charData = charJson ? JSON.parse(charJson) : null;
     app.myName = app.charData ? app.charData.name : 'Герой';
@@ -24,14 +76,12 @@ document.addEventListener('DOMContentLoaded', () => {
     app.isSolo = mode === 'solo';
     app.campaignTheme = sessionStorage.getItem('dnd-campaign') || 'custom';
 
-    // Init modules
     app.map = new GameMap(document.getElementById('mapCanvas'));
     app.ai = new AI_DM();
     app.ai.setProvider(sessionStorage.getItem('dnd-provider') || 'groq');
     app.ai.setApiKey(sessionStorage.getItem('dnd-apikey') || '');
     app.ai.setCampaign(app.campaignTheme);
 
-    // Map callbacks
     app.map.onMapChange = () => app.network.publish('map', { map: app.map.map });
     app.map.onPlayerMove = (playerId, x, y) => {
         app.map.revealFog(playerId);
@@ -39,7 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
         app.ai.updateMapContext(app.map.getMapDescription());
     };
 
-    // AI typing
     app.ai.onTyping = (isTyping) => {
         let el = document.querySelector('.typing-indicator');
         if (el) el.classList.toggle('visible', isTyping);
@@ -68,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('toggleFog').addEventListener('click', () => {
         app.map.fogEnabled = !app.map.fogEnabled;
         document.getElementById('toggleFog').classList.toggle('active', app.map.fogEnabled);
-        if (!app.map.fogEnabled) { for (let y=0;y<app.map.gridSize;y++) for (let x=0;x<app.map.gridSize;x++) app.map.fogMap[y][x]=false; }
+        if (!app.map.fogEnabled) { for (let y=0;y<app.map.gridH;y++) for (let x=0;x<app.map.gridW;x++) app.map.fogMap[y][x]=false; }
         app.map.render();
     });
 
@@ -88,13 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Quick gen buttons in toolbar
-    document.getElementById('genDungeon')?.addEventListener('click', () => { app.map.generate('dungeon'); app.network.publish('map', { map: app.map.map }); addSystemMessage('🏰 Подземелье сгенерировано'); });
-    document.getElementById('genCave')?.addEventListener('click', () => { app.map.generate('cave'); app.network.publish('map', { map: app.map.map }); addSystemMessage('🕳️ Пещера сгенерирована'); });
-    document.getElementById('genForest')?.addEventListener('click', () => { app.map.generate('forest'); app.network.publish('map', { map: app.map.map }); addSystemMessage('🌲 Лес сгенерирован'); });
-    document.getElementById('genTavern')?.addEventListener('click', () => { app.map.generate('tavern'); app.network.publish('map', { map: app.map.map }); addSystemMessage('🍺 Таверна сгенерирована'); });
-
-    // Voice chat
+    // Voice
     document.getElementById('toggleVoice').addEventListener('click', toggleVoice);
     document.getElementById('toggleMic').addEventListener('click', toggleMic);
 
@@ -102,14 +145,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('chatSend').addEventListener('click', () => sendChat());
     document.getElementById('chatInput').addEventListener('keydown', e => { if (e.key==='Enter') sendChat(); });
 
-    // Connect network
+    // Network
     app.network = new MqttNetwork();
 
     app.network.onConnect = () => {
         addSystemMessage('✅ Подключено к комнате: ' + app.roomCode.toUpperCase());
-        addSystemMessage('ЛКМ — рисовать карту, ПКМ — двигать токен. Колёсико — зум.');
 
-        // Add myself
         addPlayer(app.myPlayerId, app.myName, app.myColor, app.isHost, app.charData);
         app.map.myPlayerId = app.myPlayerId;
         app.map.isHost = app.isHost;
@@ -120,22 +161,23 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('modeLabel').style.display='inline-block';
         updateConnectionCount();
 
-        // Generate map based on style
+        // Map style
         const mapStyle = sessionStorage.getItem('dnd-mapstyle') || 'auto';
         if (mapStyle === 'random') {
-            const types = ['dungeon','cave','forest','tavern','castle','temple'];
-            const type = types[Math.floor(Math.random()*types.length)];
-            app.map.generate(type);
+            const types = ['dungeon','cave','forest','tavern','castle','temple','village','island'];
+            app.map.generate(types[Math.floor(Math.random()*types.length)]);
             addSystemMessage('🎲 Случайная карта сгенерирована');
-        } else if (mapStyle === 'empty') {
-            addSystemMessage('⬜ Пустая карта — рисуйте сами!');
         }
-        // 'auto' = AI will generate map via campaign start
 
-        // Start campaign
+        // Show tutorial
+        showTutorial();
+
+        // Start campaign after tutorial
         if (app.ai.apiKey && app.isHost) {
-            addSystemMessage('🧙 Мастер начинает кампанию...');
-            setTimeout(() => startCampaign(), 1000);
+            setTimeout(() => {
+                if (!document.getElementById('tutorialOverlay').classList.contains('hidden')) return;
+                startCampaign();
+            }, 2000);
         } else if (!app.ai.apiKey) {
             addSystemMessage('⚠️ API ключ не введён — ИИ Ведущий недоступен.');
         }
@@ -144,7 +186,6 @@ document.addEventListener('DOMContentLoaded', () => {
     app.network.onError = (err) => addSystemMessage('❌ ' + err);
     app.network.onMessage = (msg) => handleNetMessage(msg);
 
-    // Start connection
     if (app.isSolo) {
         app.network.connectSolo();
         app.myPlayerId = app.network.myId;
@@ -154,7 +195,6 @@ document.addEventListener('DOMContentLoaded', () => {
         app.myPlayerId = app.network.generateId();
         app.isHost = false;
         app.network.connect(app.roomCode, app.myName, app.myColor);
-        // Host detection
         setTimeout(() => {
             if (Object.keys(app.players).length <= 1) {
                 app.isHost = true;
@@ -169,6 +209,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 2500);
     }
 });
+
+// ===== TUTORIAL =====
+function showTutorial() {
+    const overlay = document.getElementById('tutorialOverlay');
+    if (!overlay) return;
+    app.tutorialStep = 0;
+    overlay.classList.remove('hidden');
+    updateTutorialStep();
+}
+
+function updateTutorialStep() {
+    const step = TUTORIAL[app.tutorialStep];
+    if (!step) { hideTutorial(); return; }
+    document.getElementById('tutorialIcon').textContent = step.icon;
+    document.getElementById('tutorialTitle').textContent = step.title;
+    document.getElementById('tutorialText').textContent = step.text;
+    document.getElementById('tutorialProgress').textContent = `${app.tutorialStep + 1}/${TUTORIAL.length}`;
+    document.getElementById('tutorialPrev').style.visibility = app.tutorialStep === 0 ? 'hidden' : 'visible';
+    document.getElementById('tutorialNext').textContent = app.tutorialStep === TUTORIAL.length - 1 ? '🎮 Начать!' : 'Далее →';
+}
+
+function hideTutorial() {
+    document.getElementById('tutorialOverlay').classList.add('hidden');
+    // Start campaign
+    if (app.ai.apiKey && app.isHost) {
+        addSystemMessage('🧙 Мастер начинает кампанию...');
+        setTimeout(() => startCampaign(), 800);
+    }
+}
 
 // ===== NETWORK =====
 function handleNetMessage(msg) {
@@ -223,11 +292,9 @@ function updatePlayersList() {
         div.className = 'player-item';
         const charInfo = p.charData ? `<span class="player-class">${p.charData.race} ${p.charData.class}</span>` : '';
         const hostBadge = p.isHost ? '<span class="player-host">👑 Хост</span>' : '';
-        const avatarUrl = p.charData?.avatarSeed
-            ? `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(p.charData.avatarSeed)}&backgroundColor=1a1a2e`
-            : '';
+        const avatarUrl = p.charData?.avatarUrl || '';
         div.innerHTML = avatarUrl
-            ? `<img src="${avatarUrl}" alt=""> <span>${p.name}</span>${charInfo}${hostBadge}`
+            ? `<img src="${avatarUrl}" alt="" onerror="this.style.display='none'"> <span>${p.name}</span>${charInfo}${hostBadge}`
             : `<span class="player-dot" style="background:${p.color}"></span><span>${p.name}</span>${charInfo}${hostBadge}`;
         list.appendChild(div);
     }
@@ -253,8 +320,13 @@ function sendChat() {
         app.network.publish('dice', { text: msgText, name: app.myName });
         return;
     }
-    if (text.toLowerCase() === '/help') { addSystemMessage('/roll 1d20+5 — бросить кубик, /start — начать кампанию'); return; }
+    if (text.toLowerCase() === '/help') {
+        addSystemMessage('📖 Команды: /roll 1d20+5 — бросить кубик, /start — начать кампанию, /help — помощь');
+        addSystemMessage('💡 Просто пишите действия в чат — ИИ Ведущий ответит!');
+        return;
+    }
     if (text.toLowerCase() === '/start') { startCampaign(); return; }
+    if (text.toLowerCase() === '/tutorial') { showTutorial(); return; }
 
     addChatMessage(app.myName, text, app.myColor);
     app.network.publish('chat', { name: app.myName, text, color: app.myColor });
@@ -273,8 +345,6 @@ async function handleAIRequest(text, playerName) {
 
 async function startCampaign() {
     if (!app.ai.apiKey) { addSystemMessage('⚠️ API ключ не установлен!'); return; }
-
-    // Set characters for AI context
     const chars = Object.values(app.players).map(p => ({
         name: p.name,
         race: p.charData?.race || 'Человек',
@@ -283,32 +353,21 @@ async function startCampaign() {
         stats: p.charData?.stats || { STR:10, DEX:10, CON:10, INT:10, WIS:10, CHA:10 }
     }));
     app.ai.setCharacters(chars);
-
     addSystemMessage('🧙 Мастер начинает кампанию...');
     const response = await app.ai.startCampaign(chars.map(c => c.name));
     processAIResponse(response, true);
 }
 
 function processAIResponse(text, shouldBroadcast) {
-    // Parse dice rolls
     let processed = parseAIRoll(text);
-
-    // Parse choices
     const choices = parseAIChoices(text);
-    // Remove [CHOICE: ...] from display text
     processed = processed.replace(/\[CHOICE:\s*[^\]]+\]/gi, '');
-
-    // Parse moves
     const moves = parseAIMoves(text);
     processed = processed.replace(/\[MOVE:\s*\S+\s+\d+\s+\d+\]/gi, '');
-
-    // Parse map
     const aiMap = parseAIMap(text);
     processed = processed.replace(/\[MAP_START\][\s\S]*?\[MAP_END\]/gi, '');
 
-    // Apply moves
     for (const move of moves) {
-        // Find player by name
         for (const [id, p] of Object.entries(app.players)) {
             if (p.name.toLowerCase().includes(move.name.toLowerCase())) {
                 app.map.setPlayerPosition(id, move.x, move.y);
@@ -318,25 +377,15 @@ function processAIResponse(text, shouldBroadcast) {
         }
     }
 
-    // Apply map
     if (aiMap) {
         app.map.setMapFromAI(aiMap);
         app.network.publish('map', { map: app.map.map });
         addSystemMessage('🗺️ Карта создана Мастером!');
     }
 
-    // Show choices
-    if (choices.length > 0) {
-        showChoices(choices);
-    }
-
-    // Display message
+    if (choices.length > 0) showChoices(choices);
     addDMMessage(processed);
-
-    // Broadcast
-    if (shouldBroadcast) {
-        app.network.publish('ai', { text: processed });
-    }
+    if (shouldBroadcast) app.network.publish('ai', { text: processed });
 }
 
 function showChoices(choices) {
@@ -344,13 +393,11 @@ function showChoices(choices) {
     const list = document.getElementById('choicesList');
     list.innerHTML = '';
     panel.classList.remove('hidden');
-
     choices.forEach((choice, i) => {
         const btn = document.createElement('button');
         btn.className = 'choice-btn';
         btn.textContent = `${i+1}. ${choice}`;
         btn.addEventListener('click', () => {
-            // Send choice as chat message
             addChatMessage(app.myName, choice, app.myColor);
             app.network.publish('chat', { name: app.myName, text: choice, color: app.myColor });
             if (app.ai.apiKey) {
@@ -363,11 +410,10 @@ function showChoices(choices) {
     });
 }
 
-// ===== VOICE CHAT =====
+// ===== VOICE =====
 async function toggleVoice() {
     const panel = document.getElementById('voicePanel');
     const btn = document.getElementById('toggleVoice');
-
     if (app.voiceEnabled) {
         app.voiceEnabled = false;
         panel.classList.add('hidden');
@@ -380,26 +426,16 @@ async function toggleVoice() {
             app.voiceEnabled = true;
             panel.classList.remove('hidden');
             btn.classList.add('active');
-            addSystemMessage('🎤 Голосовой чат включён! Нажмите 🎙️ чтобы выключить/включить микрофон.');
-
-            // Setup audio analyser for speaking detection
+            addSystemMessage('🎤 Голосовой чат включён! 🎙️ — вкл/выкл микрофон.');
             app.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const source = app.audioContext.createMediaStreamSource(app.voiceStream);
             app.analyser = app.audioContext.createAnalyser();
             app.analyser.fftSize = 256;
             source.connect(app.analyser);
-
-            // Monitor speaking
             detectSpeaking();
-
-            // Update voice users
             updateVoiceUsers();
-
-            // Broadcast voice signal
             app.network.publish('voice-signal', { type: 'voice-on', playerId: app.myPlayerId, name: app.myName });
-        } catch (e) {
-            addSystemMessage('❌ Нет доступа к микрофону: ' + e.message);
-        }
+        } catch (e) { addSystemMessage('❌ Нет доступа к микрофону: ' + e.message); }
     }
 }
 
@@ -408,9 +444,7 @@ function toggleMic() {
     const btn = document.getElementById('toggleMic');
     btn.classList.toggle('mic-on', app.micEnabled);
     btn.classList.toggle('mic-off', !app.micEnabled);
-    if (app.voiceStream) {
-        app.voiceStream.getAudioTracks().forEach(t => t.enabled = app.micEnabled);
-    }
+    if (app.voiceStream) app.voiceStream.getAudioTracks().forEach(t => t.enabled = app.micEnabled);
     addSystemMessage(app.micEnabled ? '🎙️ Микрофон включён' : '🔇 Микрофон выключен');
 }
 
@@ -420,16 +454,9 @@ function detectSpeaking() {
     app.analyser.getByteFrequencyData(data);
     const avg = data.reduce((a,b) => a+b, 0) / data.length;
     const isSpeaking = avg > 15;
-
-    // Update my voice indicator
     const myVoiceUser = document.querySelector(`[data-voice-id="${app.myPlayerId}"]`);
     if (myVoiceUser) myVoiceUser.classList.toggle('speaking', isSpeaking && app.micEnabled);
-
-    // Broadcast speaking state
-    if (Math.random() < 0.1) { // Throttle broadcasts
-        app.network.publish('voice-signal', { type: 'speaking', playerId: app.myPlayerId, speaking: isSpeaking && app.micEnabled });
-    }
-
+    if (Math.random() < 0.1) app.network.publish('voice-signal', { type: 'speaking', playerId: app.myPlayerId, speaking: isSpeaking && app.micEnabled });
     requestAnimationFrame(detectSpeaking);
 }
 
@@ -446,13 +473,8 @@ function updateVoiceUsers() {
 }
 
 function handleVoiceSignal(msg) {
-    if (msg.type === 'voice-on') {
-        addSystemMessage('🎤 ' + msg.name + ' включил голосовой чат');
-        updateVoiceUsers();
-    } else if (msg.type === 'speaking') {
-        const el = document.querySelector(`[data-voice-id="${msg.playerId}"]`);
-        if (el) el.classList.toggle('speaking', msg.speaking);
-    }
+    if (msg.type === 'voice-on') { addSystemMessage('🎤 ' + msg.name + ' включил голосовой чат'); updateVoiceUsers(); }
+    else if (msg.type === 'speaking') { const el = document.querySelector(`[data-voice-id="${msg.playerId}"]`); if (el) el.classList.toggle('speaking', msg.speaking); }
 }
 
 // ===== CHAT UI =====

@@ -7,6 +7,21 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="game-body">
+    <!-- Tutorial Overlay -->
+    <div id="tutorialOverlay" class="tutorial-overlay hidden">
+        <div class="tutorial-card">
+            <div id="tutorialIcon" class="tutorial-icon">🎮</div>
+            <h2 id="tutorialTitle"></h2>
+            <p id="tutorialText"></p>
+            <div class="tutorial-footer">
+                <button id="tutorialPrev" class="btn btn-sm btn-secondary">← Назад</button>
+                <span id="tutorialProgress" class="tutorial-progress">1/10</span>
+                <button id="tutorialNext" class="btn btn-sm btn-primary">Далее →</button>
+            </div>
+            <button id="tutorialSkip" class="tutorial-skip">Пропустить обучение</button>
+        </div>
+    </div>
+
     <div class="topbar">
         <div class="topbar-left">
             <a href="lobby.html" class="btn-tiny">← Лобби</a>
@@ -42,17 +57,10 @@
                     <button id="clearMap" class="tool-btn" title="Очистить">🗑️</button>
                     <button id="fillFloor" class="tool-btn" title="Залить полом">⬜</button>
                 </div>
-                <div class="tool-group">
-                    <button id="genDungeon" class="tool-btn" title="Подземелье">🏰</button>
-                    <button id="genCave" class="tool-btn" title="Пещера">🕳️</button>
-                    <button id="genForest" class="tool-btn" title="Лес">🌲</button>
-                    <button id="genTavern" class="tool-btn" title="Таверна">🍺</button>
-                </div>
             </div>
         </div>
 
         <div class="right-panel">
-            <!-- Voice chat -->
             <div id="voicePanel" class="voice-panel hidden">
                 <div class="voice-header">
                     <h3>🎤 Голосовой чат</h3>
@@ -61,23 +69,20 @@
                 <div id="voiceUsers" class="voice-users"></div>
             </div>
 
-            <!-- Players List -->
             <div class="players-list">
                 <h3>👥 Группа</h3>
                 <div id="playersList"></div>
             </div>
 
-            <!-- Story choices -->
             <div id="choicesPanel" class="choices-panel hidden">
                 <h3>⚔️ Что вы сделаете?</h3>
                 <div id="choicesList"></div>
             </div>
 
-            <!-- Chat -->
             <div class="chat-panel">
                 <div id="chatMessages" class="chat-messages"></div>
                 <div class="chat-input-area">
-                    <input type="text" id="chatInput" placeholder="Действие или /roll 1d20..." maxlength="500">
+                    <input type="text" id="chatInput" placeholder="Действие или /roll 1d20... (/help — помощь)" maxlength="500">
                     <button id="chatSend" class="btn-send">➤</button>
                 </div>
             </div>
