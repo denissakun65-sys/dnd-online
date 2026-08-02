@@ -1,27 +1,15 @@
-// ===== game.js — Main game controller =====
-// Key fix: player ID comes from network.myId (ONE source of truth)
-// No more duplicate players, proper movement sync
+// ===== game.js — Main game controller (bulletproof) =====
+// All DOM access is null-safe. Player ID = network.myId (single source of truth).
 
 const app = {
     network: null, map: null, ai: null,
-    myId: '',          // = network.myId, set once
-    myName: '',
-    myColor: '#e74c3c',
-    isHost: false,
-    isSolo: false,
-    roomCode: '',
-    players: {},       // id -> {name, color, isHost, charData}
-    playerOrder: [],
-    charData: null,
-    campaignTheme: '',
-    voiceEnabled: false,
-    micEnabled: true,
-    voiceStream: null,
-    audioContext: null,
-    analyser: null,
-    tutorialStep: 0,
-    aiBusy: false,
-    campaignStarted: false
+    myId: '', myName: '', myColor: '#e74c3c',
+    isHost: false, isSolo: false, roomCode: '',
+    players: {}, playerOrder: [],
+    charData: null, campaignTheme: '',
+    voiceEnabled: false, micEnabled: true,
+    voiceStream: null, audioContext: null, analyser: null,
+    tutorialStep: 0, aiBusy: false, campaignStarted: false
 };
 
 const TUTORIAL = [
@@ -33,17 +21,23 @@ const TUTORIAL = [
     { title: '✅ Готово!', text: 'Пишите в чат — и приключение начнётся! /help — помощь. Удачи! 🎲', icon: '🎉' }
 ];
 
-// ===== GLOBAL ERROR HANDLER =====
-window.onerror = function (msg, url, line, col, err) {
-    console.error('JS Error:', msg, line, col);
-    addSystemMessage('⚠️ Ошибка: ' + msg);
+// Safe DOM helper
+function $(id) { return document.getElementById(id); }
+
+// ===== ERROR HANDLER =====
+window.onerror = function(msg, url, line) {
+    console.error('JS Error:', msg, line);
 };
 
 document.addEventListener('DOMContentLoaded', () => {
     try { init(); }
     catch (e) {
         console.error('Init error:', e);
-        document.body.innerHTML = `<div style="color:white;padding:40px;font-size:18px;"><h2>⚠️ Ошибка загрузки</h2><p>${e.message}</p><a href="lobby.html" style="color:#c9a84c">← Назад</a></div>`;
+        document.body.innerHTML = '<div style="color:white;padding:40px;font-size:18px;">' +
+            '<h2>⚠️ Ошибка загрузки</h2>' +
+            '<p>' + e.message + '</p>' +
+            '<p style="color:#888;font-size:14px;">Строка: ' + (e.lineNumber || '?') + '</p>' +
+            '<a href="lobby.html" style="color:#c9a84c">← Назад в лобби</a></div>';
     }
 });
 
@@ -60,8 +54,12 @@ function init() {
     app.isSolo = mode === 'solo';
     app.campaignTheme = sessionStorage.getItem('dnd-campaign') || 'custom';
 
-    // Init modules
-    app.map = new GameMap(document.getElementById('mapCanvas'));
+    // Init map
+    const canvas = $('mapCanvas');
+    if (!canvas) throw new Error('Элемент mapCanvas не найден');
+    app.map = new GameMap(canvas);
+
+    // Init AI
     app.ai = new AI_DM();
     app.ai.setProvider(sessionStorage.getItem('dnd-provider') || 'groq');
     app.ai.setApiKey(sessionStorage.getItem('dnd-apikey') || '');
@@ -71,66 +69,55 @@ function init() {
     app.map.onMapChange = () => {
         try { app.network.publish('map', { map: app.map.map }); } catch (e) { }
     };
-
     app.map.onPlayerMove = (playerId, x, y) => {
         try {
             app.map.revealFog(playerId);
             app.network.publish('move', { playerId, x, y });
-            // Update AI context
             if (app.ai.updateMapContext && app.map.getMapDescription) {
                 app.ai.updateMapContext(app.map.getMapDescription());
             }
         } catch (e) { }
     };
 
-    // AI typing indicator
+    // AI typing indicator (null-safe)
     app.ai.onTyping = (isTyping) => {
         app.aiBusy = isTyping;
-        try {
-            const el = document.getElementById('typingIndicator');
-            if (el) el.classList.toggle('visible', isTyping);
-
-            const input = document.getElementById('chatInput');
-            const btn = document.getElementById('chatSend');
-            if (isTyping) {
-                input.placeholder = '🧙 Мастер думает...';
-                input.disabled = true;
-                btn.disabled = true;
-            } else {
-                input.placeholder = 'Действие или /roll 1d20...';
-                input.disabled = false;
-                btn.disabled = false;
-                input.focus();
-            }
-        } catch (e) { }
+        const el = $('typingIndicator');
+        if (el) el.classList.toggle('visible', isTyping);
+        const input = $('chatInput');
+        const btn = $('chatSend');
+        if (input) {
+            input.placeholder = isTyping ? '🧙 Мастер думает...' : 'Действие или /roll 1d20...';
+            input.disabled = isTyping;
+            if (!isTyping) input.focus();
+        }
+        if (btn) btn.disabled = isTyping;
     };
 
-    // ===== UI SETUP =====
+    // Setup all UI
     setupMapTools();
     setupTopBar();
     setupChat();
     setupTutorial();
 
-    // ===== NETWORK =====
+    // Init network
     app.network = new Network();
 
     app.network.onConnect = () => {
-        // KEY FIX: Use network.myId as the single source of truth
         app.myId = app.network.myId;
         app.isHost = app.network.isHost;
 
-        console.log('[GAME] Connected. myId:', app.myId, 'isHost:', app.isHost, 'isSolo:', app.isSolo);
-
-        // Add self to player list (only once!)
+        // Add self (only once!)
         addPlayer(app.myId, app.myName, app.myColor, app.isHost, app.charData);
 
-        // Set map player IDs
         app.map.myPlayerId = app.myId;
         app.map.isHost = app.isHost;
 
         // Update UI
-        document.getElementById('roomDisplay').textContent = app.roomCode.toUpperCase();
-        document.getElementById('modeLabel').textContent = app.isSolo ? '⚔️ Одиночка' : '👥 Онлайн';
+        const roomEl = $('roomDisplay');
+        if (roomEl) roomEl.textContent = app.roomCode.toUpperCase();
+        const modeEl = $('modeLabel');
+        if (modeEl) modeEl.textContent = app.isSolo ? '⚔️ Одиночка' : '👥 Онлайн';
         updateConnectionCount();
 
         // Auto-generate map
@@ -140,20 +127,17 @@ function init() {
             addSystemMessage('🗺️ Карта: ' + camp.name);
         }
 
-        // Show tutorial
         showTutorial();
     };
 
     app.network.onError = (err) => addSystemMessage('❌ ' + err);
-
     app.network.onMessage = (msg) => handleNetMessage(msg);
 
-    // ===== CONNECT =====
+    // Connect
     if (app.isSolo) {
         app.network.connectSolo();
     } else {
         app.network.connect(app.roomCode, app.myName, app.myColor);
-        // After a delay, check if we're alone → become host
         setTimeout(() => {
             if (Object.keys(app.players).length <= 1 && !app.isHost) {
                 app.isHost = true;
@@ -166,29 +150,27 @@ function init() {
     }
 }
 
-// ===== SETUP FUNCTIONS =====
+// ===== SETUP (all null-safe) =====
 function setupMapTools() {
-    // Toggle map tools
-    const toggleMapToolsBtn = document.getElementById('toggleMapTools');
-    if (toggleMapToolsBtn) toggleMapToolsBtn.addEventListener('click', () => {
-        document.getElementById('mapTools')?.classList.toggle('hidden');
-        toggleMapToolsBtn.classList.toggle('active');
+    const btn = $('toggleMapTools');
+    if (btn) btn.addEventListener('click', () => {
+        const tools = $('mapTools');
+        if (tools) tools.classList.toggle('hidden');
+        btn.classList.toggle('active');
     });
 
-    // Tool buttons
-    document.querySelectorAll('.map-tool-btn[data-tool]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.map-tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            app.map.selectedTool = TILE[btn.dataset.tool.toUpperCase()];
+    document.querySelectorAll('.map-tool-btn[data-tool]').forEach(b => {
+        b.addEventListener('click', () => {
+            document.querySelectorAll('.map-tool-btn[data-tool]').forEach(x => x.classList.remove('active'));
+            b.classList.add('active');
+            app.map.selectedTool = TILE[b.dataset.tool.toUpperCase()];
         });
     });
 
-    // Fog toggle
-    const toggleFogBtn = document.getElementById('toggleFog');
-    if (toggleFogBtn) toggleFogBtn.addEventListener('click', () => {
+    const fogBtn = $('toggleFog');
+    if (fogBtn) fogBtn.addEventListener('click', () => {
         app.map.fogEnabled = !app.map.fogEnabled;
-        toggleFogBtn.classList.toggle('active', app.map.fogEnabled);
+        fogBtn.classList.toggle('active', app.map.fogEnabled);
         if (!app.map.fogEnabled) {
             for (let y = 0; y < app.map.gridH; y++)
                 for (let x = 0; x < app.map.gridW; x++) app.map.fogMap[y][x] = false;
@@ -196,111 +178,103 @@ function setupMapTools() {
         app.map.render();
     });
 
-    // Map generation
-    const genMapBtn = document.getElementById('generateMap');
-    if (genMapBtn) genMapBtn.addEventListener('click', () => {
-        document.getElementById('genModal')?.classList.remove('hidden');
+    const genBtn = $('generateMap');
+    if (genBtn) genBtn.addEventListener('click', () => {
+        const m = $('genModal');
+        if (m) m.classList.remove('hidden');
     });
-    const closeGenBtn = document.getElementById('closeGenModal');
-    if (closeGenBtn) closeGenBtn.addEventListener('click', () => {
-        document.getElementById('genModal')?.classList.add('hidden');
+
+    const closeBtn = $('closeGenModal');
+    if (closeBtn) closeBtn.addEventListener('click', () => {
+        const m = $('genModal');
+        if (m) m.classList.add('hidden');
     });
-    document.querySelectorAll('.gen-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            app.map.generate(btn.dataset.gen);
+
+    document.querySelectorAll('.gen-btn').forEach(b => {
+        b.addEventListener('click', () => {
+            app.map.generate(b.dataset.gen);
             try { app.network.publish('map', { map: app.map.map }); } catch (e) { }
-            document.getElementById('genModal')?.classList.add('hidden');
-            addSystemMessage('🗺️ Карта: ' + btn.textContent);
+            const m = $('genModal');
+            if (m) m.classList.add('hidden');
+            addSystemMessage('🗺️ Карта: ' + b.textContent);
         });
     });
 }
 
 function setupTopBar() {
-    // Copy room code
-    const roomEl = document.getElementById('roomDisplay');
+    const roomEl = $('roomDisplay');
     if (roomEl) roomEl.addEventListener('click', () => {
-        const code = roomEl.textContent;
-        navigator.clipboard.writeText(code).then(() => addSystemMessage('📋 Скопировано: ' + code));
+        navigator.clipboard.writeText(roomEl.textContent).then(() => addSystemMessage('📋 Скопировано'));
     });
 
-    // Voice
-    document.getElementById('toggleVoice')?.addEventListener('click', toggleVoice);
-    document.getElementById('toggleMic')?.addEventListener('click', toggleMic);
+    const voiceBtn = $('toggleVoice');
+    if (voiceBtn) voiceBtn.addEventListener('click', toggleVoice);
+    const micBtn = $('toggleMic');
+    if (micBtn) micBtn.addEventListener('click', toggleMic);
 }
 
 function setupChat() {
-    document.getElementById('chatSend')?.addEventListener('click', sendChat);
-    const chatInput = document.getElementById('chatInput');
-    if (chatInput) chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
+    const sendBtn = $('chatSend');
+    if (sendBtn) sendBtn.addEventListener('click', sendChat);
+    const input = $('chatInput');
+    if (input) input.addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
 }
 
 function setupTutorial() {
-    document.getElementById('tutorialPrev')?.addEventListener('click', () => { app.tutorialStep--; updateTutorialStep(); });
-    document.getElementById('tutorialNext')?.addEventListener('click', () => {
+    const prev = $('tutorialPrev');
+    if (prev) prev.addEventListener('click', () => { app.tutorialStep--; updateTutorialStep(); });
+    const next = $('tutorialNext');
+    if (next) next.addEventListener('click', () => {
         app.tutorialStep++;
         if (app.tutorialStep >= TUTORIAL.length) hideTutorial();
         else updateTutorialStep();
     });
-    document.getElementById('tutorialSkip')?.addEventListener('click', hideTutorial);
+    const skip = $('tutorialSkip');
+    if (skip) skip.addEventListener('click', hideTutorial);
 }
 
 // ===== TUTORIAL =====
 function showTutorial() {
-    try {
-        const overlay = document.getElementById('tutorialOverlay');
-        if (!overlay) return;
-        app.tutorialStep = 0;
-        overlay.classList.remove('hidden');
-        updateTutorialStep();
-    } catch (e) { console.error(e); }
+    const overlay = $('tutorialOverlay');
+    if (!overlay) return;
+    app.tutorialStep = 0;
+    overlay.classList.remove('hidden');
+    updateTutorialStep();
 }
 
 function updateTutorialStep() {
-    try {
-        const step = TUTORIAL[app.tutorialStep];
-        if (!step) { hideTutorial(); return; }
-        const icon = document.getElementById('tutorialIcon');
-        const title = document.getElementById('tutorialTitle');
-        const text = document.getElementById('tutorialText');
-        const progress = document.getElementById('tutorialProgress');
-        const prev = document.getElementById('tutorialPrev');
-        const next = document.getElementById('tutorialNext');
-        if (icon) icon.textContent = step.icon;
-        if (title) title.textContent = step.title;
-        if (text) text.textContent = step.text;
-        if (progress) progress.textContent = `${app.tutorialStep + 1}/${TUTORIAL.length}`;
-        if (prev) prev.style.visibility = app.tutorialStep === 0 ? 'hidden' : 'visible';
-        if (next) next.textContent = app.tutorialStep === TUTORIAL.length - 1 ? '🎮 Начать!' : 'Далее →';
-    } catch (e) { console.error(e); }
+    const step = TUTORIAL[app.tutorialStep];
+    if (!step) { hideTutorial(); return; }
+    const el = (id) => $(id);
+    if (el('tutorialIcon')) el('tutorialIcon').textContent = step.icon;
+    if (el('tutorialTitle')) el('tutorialTitle').textContent = step.title;
+    if (el('tutorialText')) el('tutorialText').textContent = step.text;
+    if (el('tutorialProgress')) el('tutorialProgress').textContent = `${app.tutorialStep + 1}/${TUTORIAL.length}`;
+    if (el('tutorialPrev')) el('tutorialPrev').style.visibility = app.tutorialStep === 0 ? 'hidden' : 'visible';
+    if (el('tutorialNext')) el('tutorialNext').textContent = app.tutorialStep === TUTORIAL.length - 1 ? '🎮 Начать!' : 'Далее →';
 }
 
 function hideTutorial() {
-    try {
-        document.getElementById('tutorialOverlay').classList.add('hidden');
-        // Auto-start campaign if host and has API key
-        if (app.ai.apiKey && app.isHost && !app.campaignStarted) {
-            addSystemMessage('🧙 Мастер начинает кампанию...');
-            setTimeout(startCampaign, 800);
-        }
-    } catch (e) { console.error(e); }
+    const overlay = $('tutorialOverlay');
+    if (overlay) overlay.classList.add('hidden');
+    if (app.ai.apiKey && app.isHost && !app.campaignStarted) {
+        addSystemMessage('🧙 Мастер начинает кампанию...');
+        setTimeout(startCampaign, 800);
+    }
 }
 
-// ===== NETWORK MESSAGE HANDLING =====
+// ===== NETWORK MESSAGES =====
 function handleNetMessage(msg) {
     if (!msg || !msg.type) return;
-
-    // CRITICAL: Filter out own messages (except 'state' which we handle specially)
     if (msg.from === app.myId && msg.type !== 'state') return;
 
     try {
         switch (msg.type) {
             case 'join':
-                // Another player joined
                 if (msg.playerId && msg.playerId !== app.myId) {
                     addPlayer(msg.playerId, msg.name, msg.color, false, null);
-                    addSystemMessage(`👋 ${msg.name} присоединился!`);
+                    addSystemMessage('👋 ' + msg.name + ' присоединился!');
                     updateConnectionCount();
-                    // If host, send them the current state
                     if (app.isHost) {
                         setTimeout(() => {
                             app.network.publish('state', {
@@ -312,18 +286,15 @@ function handleNetMessage(msg) {
                     }
                 }
                 break;
-
             case 'leave':
                 if (msg.playerId && app.players[msg.playerId]) {
                     const name = app.players[msg.playerId].name;
                     removePlayer(msg.playerId);
-                    addSystemMessage(`👋 ${name} покинул игру.`);
+                    addSystemMessage('👋 ' + name + ' покинул игру.');
                     updateConnectionCount();
                 }
                 break;
-
             case 'state':
-                // Sync state from host
                 if (!app.isHost && msg.targetPlayer === app.myId) {
                     if (msg.map) app.map.setMapData(msg.map);
                     if (msg.players) {
@@ -339,62 +310,39 @@ function handleNetMessage(msg) {
                     addSystemMessage('📥 Данные загружены!');
                 }
                 break;
-
             case 'move':
-                // Another player moved
                 if (msg.playerId && msg.playerId !== app.myId) {
                     app.map.setPlayerPosition(msg.playerId, msg.x, msg.y);
                 }
                 break;
-
             case 'map':
-                // Map update from host
-                if (!app.isHost && msg.map) {
-                    app.map.setMapData(msg.map);
-                }
+                if (!app.isHost && msg.map) app.map.setMapData(msg.map);
                 break;
-
             case 'chat':
-                // Chat message from another player
-                if (msg.name && msg.text) {
-                    addChatMessage(msg.name, msg.text, msg.color || '#e0d5c0');
-                }
+                if (msg.name && msg.text) addChatMessage(msg.name, msg.text, msg.color || '#e0d5c0');
                 break;
-
             case 'ai':
-                // AI response from host
-                if (msg.text) {
-                    processAIResponse(msg.text, false);
-                }
+                if (msg.text) processAIResponse(msg.text, false);
                 break;
-
             case 'dice':
                 if (msg.text) addDiceMessage(msg.text);
                 break;
-
             case 'request-ai':
-                // Non-host player asks host to query AI
-                if (app.isHost && msg.text) {
-                    handleAIRequest(msg.text, msg.playerName || 'Игрок');
+                if (app.isHost && msg.text) handleAIRequest(msg.text, msg.playerName || 'Игрок');
+                break;
+            case 'voice-signal':
+                if (msg.type === 'voice-on') {
+                    addSystemMessage('🎤 ' + msg.name + ' включил голос');
+                    updateVoiceUsers();
                 }
                 break;
-
-            case 'voice-signal':
-                handleVoiceSignal(msg);
-                break;
         }
-    } catch (e) {
-        console.error('Net msg error:', e);
-    }
+    } catch (e) { console.error('Net msg error:', e); }
 }
 
 // ===== PLAYERS =====
 function addPlayer(id, name, color, isHost, charData) {
-    // Prevent duplicates!
-    if (app.players[id]) {
-        console.log('[GAME] Player already exists:', id, name);
-        return;
-    }
+    if (app.players[id]) return; // No duplicates!
     app.players[id] = { name, color, isHost, charData: charData || null };
     app.playerOrder.push(id);
     app.map.addPlayer(id, name, color);
@@ -409,31 +357,34 @@ function removePlayer(id) {
 }
 
 function updatePlayersList() {
-    const list = document.getElementById('playersList');
+    const list = $('playersList');
+    if (!list) return;
     list.innerHTML = '';
     for (const [id, p] of Object.entries(app.players)) {
         const div = document.createElement('div');
         div.className = 'player-item';
-        const ci = p.charData ? `<span class="player-class">${p.charData.race} ${p.charData.class}</span>` : '';
+        const ci = p.charData ? '<span class="player-class">' + p.charData.race + ' ' + p.charData.class + '</span>' : '';
         const hb = p.isHost ? '<span class="player-host">👑</span>' : '';
-        div.innerHTML = `<span class="player-dot" style="background:${p.color}"></span><span>${p.name}</span>${ci}${hb}`;
+        div.innerHTML = '<span class="player-dot" style="background:' + p.color + '"></span><span>' + p.name + '</span>' + ci + hb;
         list.appendChild(div);
     }
 }
 
 function updateConnectionCount() {
-    document.getElementById('connectionCount').textContent = app.isSolo ? '1' : `${Object.keys(app.players).length}/4`;
+    const el = $('connectionCount');
+    if (el) el.textContent = app.isSolo ? '1' : Object.keys(app.players).length + '/4';
 }
 
 // ===== CHAT =====
 function sendChat() {
     if (app.aiBusy) return;
-    const input = document.getElementById('chatInput');
+    const input = $('chatInput');
+    if (!input) return;
     const text = input.value.trim();
     if (!text) return;
     input.value = '';
 
-    // Dice roll
+    // Dice
     if (text.toLowerCase().startsWith('/roll ') || text.toLowerCase().startsWith('/r ')) {
         const notation = text.replace(/^\/(roll|r)\s+/i, '');
         const result = rollDice(notation);
@@ -454,11 +405,8 @@ function sendChat() {
 
     // Send to AI
     if (app.ai.apiKey) {
-        if (app.isHost) {
-            handleAIRequest(text, app.myName);
-        } else {
-            try { app.network.publish('request-ai', { text, playerName: app.myName }); } catch (e) { }
-        }
+        if (app.isHost) handleAIRequest(text, app.myName);
+        else try { app.network.publish('request-ai', { text, playerName: app.myName }); } catch (e) { }
     }
 }
 
@@ -471,9 +419,7 @@ async function handleAIRequest(text, playerName) {
         }
         const response = await app.ai.generateResponse(text, playerName);
         if (response) processAIResponse(response, true);
-    } catch (err) {
-        addSystemMessage('❌ Ошибка ИИ: ' + err.message);
-    }
+    } catch (err) { addSystemMessage('❌ Ошибка ИИ: ' + err.message); }
 }
 
 async function startCampaign() {
@@ -494,30 +440,20 @@ async function startCampaign() {
     try {
         const response = await app.ai.startCampaign(chars.map(c => c.name));
         if (response) processAIResponse(response, true);
-    } catch (err) {
-        addSystemMessage('❌ Ошибка: ' + err.message);
-    }
+    } catch (err) { addSystemMessage('❌ Ошибка: ' + err.message); }
 }
 
 function processAIResponse(text, shouldBroadcast) {
     if (!text) return;
     try {
-        // Parse dice
         let processed = parseAIRoll(text);
-
-        // Parse choices
         const choices = parseAIChoices(text);
         processed = processed.replace(/\[CHOICE:\s*[^\]]+\]/gi, '');
-
-        // Parse moves
         const moves = parseAIMoves(text);
         processed = processed.replace(/\[MOVE:\s*\S+\s+\d+\s+\d+\]/gi, '');
-
-        // Parse map
         const aiMap = parseAIMap(text);
         processed = processed.replace(/\[MAP_START\][\s\S]*?\[MAP_END\]/gi, '');
 
-        // Apply moves
         for (const move of moves) {
             for (const [id, p] of Object.entries(app.players)) {
                 if (p.name.toLowerCase().includes(move.name.toLowerCase())) {
@@ -528,21 +464,17 @@ function processAIResponse(text, shouldBroadcast) {
             }
         }
 
-        // Apply map
         if (aiMap) {
             app.map.setMapFromAI(aiMap);
             try { app.network.publish('map', { map: app.map.map }); } catch (e) { }
             addSystemMessage('🗺️ Карта создана Мастером!');
         }
 
-        // Show message
         addDMMessage(processed);
 
-        // Show choices
         if (choices.length > 0) {
             showChoices(choices);
         } else {
-            // Auto-detect numbered lists as choices
             const autoChoices = [];
             const regex = /(?:^|\n)\s*(\d+)[.)]\s*(.+)/gm;
             let m;
@@ -553,7 +485,6 @@ function processAIResponse(text, shouldBroadcast) {
             if (autoChoices.length >= 2) showChoices(autoChoices.slice(0, 4));
         }
 
-        // Broadcast to other players
         if (shouldBroadcast) {
             try { app.network.publish('ai', { text: processed }); } catch (e) { }
         }
@@ -564,50 +495,46 @@ function processAIResponse(text, shouldBroadcast) {
 }
 
 function showChoices(choices) {
-    try {
-        const panel = document.getElementById('choicesPanel');
-        const list = document.getElementById('choicesList');
-        list.innerHTML = '';
-        panel.classList.add('visible');
+    const panel = $('choicesPanel');
+    const list = $('choicesList');
+    if (!panel || !list) return;
+    list.innerHTML = '';
+    panel.classList.add('visible');
 
-        choices.forEach((choice, i) => {
-            const btn = document.createElement('button');
-            btn.className = 'choice-btn';
-            btn.textContent = `${i + 1}. ${choice}`;
-            btn.addEventListener('click', () => {
-                // Hide choices
-                panel.classList.remove('visible');
-                // Show in chat
-                addChatMessage(app.myName, choice, app.myColor);
-                try { app.network.publish('chat', { name: app.myName, text: choice, color: app.myColor }); } catch (e) { }
-                // Send to AI
-                if (app.ai.apiKey) {
-                    addSystemMessage('🧙 Мастер реагирует...');
-                    if (app.isHost) handleAIRequest(choice, app.myName);
-                    else try { app.network.publish('request-ai', { text: choice, playerName: app.myName }); } catch (e) { }
-                }
-            });
-            list.appendChild(btn);
+    choices.forEach((choice, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.textContent = (i + 1) + '. ' + choice;
+        btn.addEventListener('click', () => {
+            panel.classList.remove('visible');
+            addChatMessage(app.myName, choice, app.myColor);
+            try { app.network.publish('chat', { name: app.myName, text: choice, color: app.myColor }); } catch (e) { }
+            if (app.ai.apiKey) {
+                addSystemMessage('🧙 Мастер реагирует...');
+                if (app.isHost) handleAIRequest(choice, app.myName);
+                else try { app.network.publish('request-ai', { text: choice, playerName: app.myName }); } catch (e) { }
+            }
         });
-    } catch (e) { console.error(e); }
+        list.appendChild(btn);
+    });
 }
 
 // ===== VOICE =====
 async function toggleVoice() {
     try {
-        const panel = document.getElementById('voicePanel');
-        const btn = document.getElementById('toggleVoice');
+        const panel = $('voicePanel');
+        const btn = $('toggleVoice');
         if (app.voiceEnabled) {
             app.voiceEnabled = false;
-            panel.classList.remove('visible');
-            btn.classList.remove('active');
+            if (panel) panel.classList.remove('visible');
+            if (btn) btn.classList.remove('active');
             if (app.voiceStream) { app.voiceStream.getTracks().forEach(t => t.stop()); app.voiceStream = null; }
             addSystemMessage('🎤 Голос выключен');
         } else {
             app.voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             app.voiceEnabled = true;
-            panel.classList.add('visible');
-            btn.classList.add('active');
+            if (panel) panel.classList.add('visible');
+            if (btn) btn.classList.add('active');
             addSystemMessage('🎤 Голос включён!');
             app.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const source = app.audioContext.createMediaStreamSource(app.voiceStream);
@@ -623,8 +550,8 @@ async function toggleVoice() {
 
 function toggleMic() {
     app.micEnabled = !app.micEnabled;
-    const btn = document.getElementById('toggleMic');
-    btn.classList.toggle('active', app.micEnabled);
+    const btn = $('toggleMic');
+    if (btn) btn.classList.toggle('active', app.micEnabled);
     if (app.voiceStream) app.voiceStream.getAudioTracks().forEach(t => t.enabled = app.micEnabled);
     addSystemMessage(app.micEnabled ? '🎙️ Микрофон вкл' : '🔇 Микрофон выкл');
 }
@@ -634,51 +561,48 @@ function detectSpeaking() {
     const data = new Uint8Array(app.analyser.frequencyBinCount);
     app.analyser.getByteFrequencyData(data);
     const avg = data.reduce((a, b) => a + b, 0) / data.length;
-    const el = document.querySelector(`[data-voice-id="${app.myId}"]`);
+    const el = document.querySelector('[data-voice-id="' + app.myId + '"]');
     if (el) el.classList.toggle('speaking', avg > 15 && app.micEnabled);
     requestAnimationFrame(detectSpeaking);
 }
 
 function updateVoiceUsers() {
-    const c = document.getElementById('voiceUsers');
+    const c = $('voiceUsers');
+    if (!c) return;
     c.innerHTML = '';
     for (const [id, p] of Object.entries(app.players)) {
         const d = document.createElement('div');
         d.className = 'voice-user';
         d.dataset.voiceId = id;
-        d.innerHTML = `<span class="player-dot" style="background:${p.color}"></span>${p.name}`;
+        d.innerHTML = '<span class="player-dot" style="background:' + p.color + '"></span>' + p.name;
         c.appendChild(d);
-    }
-}
-
-function handleVoiceSignal(msg) {
-    if (msg.type === 'voice-on') {
-        addSystemMessage('🎤 ' + msg.name + ' включил голос');
-        updateVoiceUsers();
     }
 }
 
 // ===== CHAT UI =====
 function addChatMessage(name, text, color) {
-    const c = document.getElementById('chatMessages');
+    const c = $('chatMessages');
+    if (!c) return;
     const d = document.createElement('div');
     d.className = 'chat-msg player';
-    d.innerHTML = `<span class="msg-author" style="color:${color}">${name}:</span>${escapeHTML(text)}`;
+    d.innerHTML = '<span class="msg-author" style="color:' + color + '">' + name + ':</span>' + escapeHTML(text);
     c.appendChild(d);
     c.scrollTop = c.scrollHeight;
 }
 
 function addDMMessage(text) {
-    const c = document.getElementById('chatMessages');
+    const c = $('chatMessages');
+    if (!c) return;
     const d = document.createElement('div');
     d.className = 'chat-msg dm';
-    d.innerHTML = `<span class="dm-label">🧙 Мастер:</span> ${text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>')}`;
+    d.innerHTML = '<span class="dm-label">🧙 Мастер:</span> ' + text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
     c.appendChild(d);
     c.scrollTop = c.scrollHeight;
 }
 
 function addSystemMessage(text) {
-    const c = document.getElementById('chatMessages');
+    const c = $('chatMessages');
+    if (!c) return;
     const d = document.createElement('div');
     d.className = 'chat-msg system';
     d.textContent = text;
@@ -687,7 +611,8 @@ function addSystemMessage(text) {
 }
 
 function addDiceMessage(text) {
-    const c = document.getElementById('chatMessages');
+    const c = $('chatMessages');
+    if (!c) return;
     const d = document.createElement('div');
     d.className = 'chat-msg dice';
     d.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
