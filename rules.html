@@ -8,6 +8,7 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
 </head>
 <body>
+    <canvas id="particles-bg"></canvas>
     <nav class="landing-nav">
         <a href="index.html">Главная</a>
         <a href="lobby.html">Играть</a>
@@ -77,7 +78,7 @@
                     <li>Заклинания можно усиливать ячейками выше</li>
                     <li><strong>Концентрация</strong>: только одно заклинание</li>
                     <li>При получении урона: спасбросок ТЕЛ (DC 10 или урон/2)</li>
-                    <li><strong>Вероятность</strong>: компонент V — голос, S — жест, M — материал</li>
+                    <li><strong>Компоненты</strong>: V — голос, S — жест, M — материал</li>
                     <li><strong>Атака заклинанием</strong>: d20 + модификатор заклинания</li>
                     <li><strong>Спасбросок</strong>: DC = 8 + бонус мастерства + модификатор</li>
                 </ul>
@@ -126,5 +127,26 @@
             <a href="lobby.html" class="btn-primary">⚔️ Начать приключение</a>
         </div>
     </div>
+
+    <script>
+    (function() {
+        const canvas = document.getElementById('particles-bg');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let W, H, particles = [];
+        function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+        resize();
+        window.addEventListener('resize', resize);
+        class P {
+            constructor() { this.reset(); }
+            reset() { this.x = Math.random()*W; this.y = Math.random()*H; this.s = Math.random()*1.5+0.3; this.vx = (Math.random()-0.5)*0.2; this.vy = -Math.random()*0.2-0.05; this.o = Math.random()*0.25+0.05; this.l = Math.random()*200+80; this.ml = this.l; }
+            update() { this.x+=this.vx; this.y+=this.vy; this.l--; if(this.l<=0||this.x<0||this.x>W||this.y<0||this.y>H) this.reset(); }
+            draw() { const f=Math.min(1,this.l/(this.ml*0.3)); ctx.globalAlpha=this.o*f; ctx.fillStyle='#d4a843'; ctx.beginPath(); ctx.arc(this.x,this.y,this.s,0,Math.PI*2); ctx.fill(); }
+        }
+        for(let i=0;i<35;i++) particles.push(new P());
+        function a() { ctx.clearRect(0,0,W,H); particles.forEach(p=>{p.update();p.draw();}); ctx.globalAlpha=1; requestAnimationFrame(a); }
+        a();
+    })();
+    </script>
 </body>
 </html>

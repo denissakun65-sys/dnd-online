@@ -8,6 +8,8 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
 </head>
 <body>
+    <canvas id="particles-bg"></canvas>
+
     <nav class="landing-nav">
         <a href="index.html">Главная</a>
         <a href="lobby.html">Играть</a>
@@ -19,12 +21,23 @@
         <div class="landing-content">
             <div class="landing-d20">
                 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <polygon points="50,5 95,30 95,70 50,95 5,70 5,30" stroke="#c9a84c" stroke-width="2" fill="rgba(201,168,76,0.05)"/>
-                    <polygon points="50,5 95,30 50,50 5,30" stroke="#c9a84c" stroke-width="1" fill="rgba(201,168,76,0.03)"/>
-                    <polygon points="95,30 95,70 50,50" stroke="#c9a84c" stroke-width="1" fill="rgba(201,168,76,0.02)"/>
-                    <polygon points="5,30 50,50 5,70" stroke="#c9a84c" stroke-width="1" fill="rgba(201,168,76,0.02)"/>
-                    <polygon points="50,95 95,70 50,50 5,70" stroke="#c9a84c" stroke-width="1" fill="rgba(201,168,76,0.03)"/>
-                    <text x="50" y="58" text-anchor="middle" fill="#c9a84c" font-family="Cinzel" font-size="22" font-weight="bold">20</text>
+                    <defs>
+                        <linearGradient id="d20grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#f0d060;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#d4a843;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#8b6914;stop-opacity:1" />
+                        </linearGradient>
+                        <filter id="d20glow">
+                            <feGaussianBlur stdDeviation="2" result="blur"/>
+                            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                        </filter>
+                    </defs>
+                    <polygon points="50,5 95,30 95,70 50,95 5,70 5,30" stroke="url(#d20grad)" stroke-width="2" fill="rgba(212,168,67,0.05)" filter="url(#d20glow)"/>
+                    <polygon points="50,5 95,30 50,50 5,30" stroke="url(#d20grad)" stroke-width="1" fill="rgba(212,168,67,0.04)"/>
+                    <polygon points="95,30 95,70 50,50" stroke="url(#d20grad)" stroke-width="1" fill="rgba(212,168,67,0.02)"/>
+                    <polygon points="5,30 50,50 5,70" stroke="url(#d20grad)" stroke-width="1" fill="rgba(212,168,67,0.02)"/>
+                    <polygon points="50,95 95,70 50,50 5,70" stroke="url(#d20grad)" stroke-width="1" fill="rgba(212,168,67,0.03)"/>
+                    <text x="50" y="58" text-anchor="middle" fill="url(#d20grad)" font-family="Cinzel" font-size="22" font-weight="bold">20</text>
                 </svg>
             </div>
 
@@ -60,5 +73,61 @@
             </div>
         </div>
     </div>
+
+    <script>
+    // ===== Animated Particles =====
+    (function() {
+        const canvas = document.getElementById('particles-bg');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let W, H, particles = [];
+
+        function resize() {
+            W = canvas.width = window.innerWidth;
+            H = canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        class Particle {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * W;
+                this.y = Math.random() * H;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = (Math.random() - 0.5) * 0.3;
+                this.speedY = (Math.random() - 0.5) * 0.3 - 0.1;
+                this.opacity = Math.random() * 0.4 + 0.1;
+                this.life = Math.random() * 300 + 100;
+                this.maxLife = this.life;
+                this.hue = Math.random() > 0.7 ? 40 : 30; // gold-ish
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.life--;
+                if (this.life <= 0 || this.x < 0 || this.x > W || this.y < 0 || this.y > H) this.reset();
+            }
+            draw() {
+                const fade = Math.min(1, this.life / (this.maxLife * 0.3));
+                ctx.globalAlpha = this.opacity * fade;
+                ctx.fillStyle = `hsl(${this.hue}, 70%, 60%)`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < 60; i++) particles.push(new Particle());
+
+        function animate() {
+            ctx.clearRect(0, 0, W, H);
+            particles.forEach(p => { p.update(); p.draw(); });
+            ctx.globalAlpha = 1;
+            requestAnimationFrame(animate);
+        }
+        animate();
+    })();
+    </script>
 </body>
 </html>

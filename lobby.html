@@ -8,6 +8,8 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
 </head>
 <body class="lobby-page">
+    <canvas id="particles-bg"></canvas>
+
     <div class="lobby-header">
         <h1>⚔️ Создание Персонажа</h1>
         <p>Создайте героя и отправьтесь в приключение</p>
@@ -132,7 +134,7 @@
                 <h2>🎨 Аватар</h2>
                 <div class="avatar-preview" id="avatarPreview">🧙</div>
                 <div class="avatar-prompt" id="avatarPrompt">Нажмите «Сгенерировать» для ИИ-аватара</div>
-                <button class="btn-secondary" id="generateAvatar" style="margin:0.5rem auto;padding:0.5rem 1.5rem;font-size:0.9rem;">✨ Сгенерировать</button>
+                <button class="btn-secondary" id="generateAvatar" style="margin:0.5rem auto;padding:0.5rem 1.5rem;font-size:0.85rem;">✨ Сгенерировать</button>
             </div>
 
             <!-- Campaign -->
@@ -154,7 +156,7 @@
                 <div class="form-group">
                     <label>API Ключ</label>
                     <input type="password" id="apiKey" class="form-input" placeholder="Вставьте ключ...">
-                    <div style="font-size:0.7rem;color:var(--text-dim);margin-top:0.3rem;">
+                    <div style="font-size:0.7rem;color:var(--text-ghost);margin-top:0.3rem;">
                         Groq: <a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent-gold);">console.groq.com/keys</a> |
                         Gemini: <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent-gold);">aistudio.google.com</a>
                     </div>
@@ -171,6 +173,27 @@
         </div>
     </div>
 
+    <script>
+    // ===== Particles for lobby =====
+    (function() {
+        const canvas = document.getElementById('particles-bg');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let W, H, particles = [];
+        function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+        resize();
+        window.addEventListener('resize', resize);
+        class P {
+            constructor() { this.reset(); }
+            reset() { this.x = Math.random()*W; this.y = Math.random()*H; this.s = Math.random()*1.5+0.3; this.vx = (Math.random()-0.5)*0.2; this.vy = -Math.random()*0.2-0.05; this.o = Math.random()*0.3+0.05; this.l = Math.random()*200+80; this.ml = this.l; }
+            update() { this.x+=this.vx; this.y+=this.vy; this.l--; if(this.l<=0||this.x<0||this.x>W||this.y<0||this.y>H) this.reset(); }
+            draw() { const f=Math.min(1,this.l/(this.ml*0.3)); ctx.globalAlpha=this.o*f; ctx.fillStyle='#d4a843'; ctx.beginPath(); ctx.arc(this.x,this.y,this.s,0,Math.PI*2); ctx.fill(); }
+        }
+        for(let i=0;i<40;i++) particles.push(new P());
+        function a() { ctx.clearRect(0,0,W,H); particles.forEach(p=>{p.update();p.draw();}); ctx.globalAlpha=1; requestAnimationFrame(a); }
+        a();
+    })();
+    </script>
     <script src="js/lobby.js"></script>
 </body>
 </html>
