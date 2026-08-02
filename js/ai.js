@@ -17,6 +17,11 @@ class AI_DM {
     setCampaign(theme) { this.campaignTheme = theme; }
     setCharacters(chars) { this.characters = chars; }
 
+    // Update map context for AI
+    updateMapContext(mapDescription) {
+        this.mapContext = mapDescription;
+    }
+
     // Campaign data with MAP TYPE for each
     static CAMPAIGNS = {
         dark_castle: {
@@ -136,6 +141,14 @@ class AI_DM {
             messages.push({
                 role: 'system',
                 content: `Кампания: ${camp.name}. Описание: ${camp.desc}. Предыстория: ${camp.backstory}`
+            });
+        }
+
+        // Map context
+        if (this.mapContext) {
+            messages.push({
+                role: 'system',
+                content: `Текущая карта: ${this.mapContext}`
             });
         }
 
