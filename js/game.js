@@ -18,6 +18,7 @@ const TUTORIAL = [
     { title: '💬 Чат и действия', text: 'Пишите действия в чат: "Осматриваю комнату", "Атакую гоблина". ИИ Ведущий ответит!', icon: '💬' },
     { title: '⚔️ Выборы', text: 'ИИ предложит варианты действий — кликните на вариант!', icon: '⚔️' },
     { title: '🎲 Кубики', text: '/roll 1d20+5 — бросить кубик. ИИ тоже бросает автоматически.', icon: '🎲' },
+    { title: '🎤 Голос', text: 'Нажмите 🎤 вверху чтобы включить голос. Потом 🎙️ — вкл/выкл микрофон. Пока только индикаторы, не аудио.', icon: '🎤' },
     { title: '✅ Готово!', text: 'Пишите в чат — и приключение начнётся! /help — помощь. Удачи! 🎲', icon: '🎉' }
 ];
 
@@ -447,13 +448,21 @@ function processAIResponse(text, shouldBroadcast) {
     if (!text) return;
     try {
         let processed = parseAIRoll(text);
+
+        // Parse choices
         const choices = parseAIChoices(text);
         processed = processed.replace(/\[CHOICE:\s*[^\]]+\]/gi, '');
+
+        // Parse moves
         const moves = parseAIMoves(text);
         processed = processed.replace(/\[MOVE:\s*\S+\s+\d+\s+\d+\]/gi, '');
-        const aiMap = parseAIMap(text);
-        processed = processed.replace(/\[MAP_START\][\s\S]*?\[MAP_END\]/gi, '');
 
+        // Parse map — handle both complete and incomplete MAP blocks
+        const aiMap = parseAIMap(text);
+        // Strip MAP_START even without MAP_END (in case AI response was cut off)
+        processed = processed.replace(/\[MAP_START\][\s\S]*?(\[MAP_END\]|$)/gi, '');
+
+        // Apply moves
         for (const move of moves) {
             for (const [id, p] of Object.entries(app.players)) {
                 if (p.name.toLowerCase().includes(move.name.toLowerCase())) {
@@ -464,14 +473,19 @@ function processAIResponse(text, shouldBroadcast) {
             }
         }
 
-        if (aiMap) {
+        // Apply AI map only if it's valid (not all zeros)
+        if (aiMap && isValidMap(aiMap)) {
             app.map.setMapFromAI(aiMap);
             try { app.network.publish('map', { map: app.map.map }); } catch (e) { }
             addSystemMessage('🗺️ Карта создана Мастером!');
+        } else if (aiMap) {
+            addSystemMessage('⚠️ Карта от ИИ некорректна, используем сгенерированную');
         }
 
+        // Show message
         addDMMessage(processed);
 
+        // Show choices
         if (choices.length > 0) {
             showChoices(choices);
         } else {
@@ -492,6 +506,18 @@ function processAIResponse(text, shouldBroadcast) {
         console.error('processAIResponse error:', e);
         addSystemMessage('⚠️ Ошибка обработки ответа ИИ');
     }
+}
+
+// Check if AI-generated map is valid (not all zeros)
+function isValidMap(mapData) {
+    if (!mapData || mapData.length < 5) return false;
+    let nonZero = 0;
+    for (const row of mapData) {
+        for (const cell of row) {
+            if (cell > 0) nonZero++;
+        }
+    }
+    return nonZero > mapData.length * 2; // At least 2 non-zero cells per row
 }
 
 function showChoices(choices) {
@@ -531,11 +557,12 @@ async function toggleVoice() {
             if (app.voiceStream) { app.voiceStream.getTracks().forEach(t => t.stop()); app.voiceStream = null; }
             addSystemMessage('🎤 Голос выключен');
         } else {
+            addSystemMessage('🎤 Запрос доступа к микрофону...');
             app.voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             app.voiceEnabled = true;
             if (panel) panel.classList.add('visible');
             if (btn) btn.classList.add('active');
-            addSystemMessage('🎤 Голос включён!');
+            addSystemMessage('🎤 Голос включён! Нажмите 🎙️ чтобы выключить/включить микрофон');
             app.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const source = app.audioContext.createMediaStreamSource(app.voiceStream);
             app.analyser = app.audioContext.createAnalyser();
@@ -545,7 +572,10 @@ async function toggleVoice() {
             updateVoiceUsers();
             try { app.network.publish('voice-signal', { type: 'voice-on', playerId: app.myId, name: app.myName }); } catch (e) { }
         }
-    } catch (e) { addSystemMessage('❌ Микрофон: ' + e.message); }
+    } catch (e) {
+        addSystemMessage('❌ Микрофон недоступен: ' + e.message);
+        addSystemMessage('💡 Нажмите 🎤 в верхней панели, чтобы включить голос');
+    }
 }
 
 function toggleMic() {
