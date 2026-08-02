@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>О проекте — D&D Online</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="nav-brand">⚔️ D&D Online</a>
+        <div class="nav-links">
+            <a href="index.html">Главная</a>
+            <a href="lobby.html">🎮 Играть</a>
+            <a href="rules.html">📖 Правила</a>
+            <a href="about.html" class="active">О проекте</a>
+        </div>
+    </nav>
+
+    <main class="about-page">
+        <h2>🛡️ О проекте</h2>
+
+        <div class="about-content">
+            <div class="about-section">
+                <h3>Что это?</h3>
+                <p>D&D Online — бесплатная браузерная платформа для игры в Dungeons & Dragons 5e с ИИ Мастером Подземелий. Не нужно ничего скачивать, устанавливать или покупать — только браузер.</p>
+            </div>
+
+            <div class="about-section">
+                <h3>Как работает?</h3>
+                <ul>
+                    <li><strong>ИИ Ведущий</strong> — использует Groq или Google Gemini (бесплатные API) для ведения кампании</li>
+                    <li><strong>Карта</strong> — HTML5 Canvas с сеткой, токенами, туманом войны</li>
+                    <li><strong>Сеть</strong> — MQTT протокол через бесплатный брокер (без регистрации)</li>
+                    <li><strong>Кубики</strong> — встроенный генератор случайных чисел</li>
+                </ul>
+            </div>
+
+            <div class="about-section">
+                <h3>Технологии</h3>
+                <div class="tech-grid">
+                    <div class="tech-item">
+                        <strong>MQTT</strong>
+                        <span>Реальное время</span>
+                    </div>
+                    <div class="tech-item">
+                        <strong>Canvas</strong>
+                        <span>Карта и токены</span>
+                    </div>
+                    <div class="tech-item">
+                        <strong>Groq / Gemini</strong>
+                        <span>ИИ Ведущий</span>
+                    </div>
+                    <div class="tech-item">
+                        <strong>Vanilla JS</strong>
+                        <span>Без фреймворков</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="about-section">
+                <h3>Развертывание</h3>
+                <p>Сайт можно разместить бесплатно:</p>
+                <ul>
+                    <li><strong>GitHub Pages</strong> — github.com → Settings → Pages</li>
+                    <li><strong>Netlify</strong> — перетащите папку на netlify.com</li>
+                    <li><strong>Vercel</strong> — импорт папки на vercel.com</li>
+                </ul>
+            </div>
+
+            <div class="about-section">
+                <h3>Ограничения</h3>
+                <ul>
+                    <li>До 4 игроков одновременно</li>
+                    <li>ИИ Ведущий требует бесплатный API ключ</li>
+                    <li>Хост должен быть онлайн для мультиплеера</li>
+                    <li>MQTT брокер может иметь задержку ~100-200мс</li>
+                </ul>
+            </div>
+
+            <div class="about-section">
+                <h3>Лицензия</h3>
+                <p>Свободно! Используйте, модифицируйте, распространяйте. 🎲</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>⚔️ D&D Online — Бесплатная браузерная D&D платформа с ИИ Ведущим</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📖 Правила — D&D Online</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="nav-brand">⚔️ D&D Online</a>
+        <div class="nav-links">
+            <a href="index.html">Главная</a>
+            <a href="lobby.html">🎮 Играть</a>
+            <a href="rules.html" class="active">📖 Правила</a>
+            <a href="about.html">О проекте</a>
+        </div>
+    </nav>
+
+    <main class="rules-page">
+        <h2>📖 Краткие правила D&D 5e</h2>
+        <p class="rules-intro">Всё, что нужно знать для игры. ИИ Ведущий знает полные правила — просто пишите действия!</p>
+
+        <div class="rules-grid">
+            <div class="rule-card">
+                <h3>🎲 Броски кубиков</h3>
+                <p>Формат: <code>NdN+M</code></p>
+                <ul>
+                    <li><code>1d20</code> — бросок d20 (проверка)</li>
+                    <li><code>1d20+5</code> — с модификатором</li>
+                    <li><code>2d6+3</code> — урон великоручного меча</li>
+                    <li><code>1d8</code> — урон длинного меча</li>
+                </ul>
+                <p>В чате: <code>/roll 1d20+5</code></p>
+            </div>
+
+            <div class="rule-card">
+                <h3>⚔️ Бой</h3>
+                <ul>
+                    <li><strong>Атака:</strong> бросок d20 + модификатор атаки vs AC цели</li>
+                    <li><strong>Урон:</strong> если атака попадает — бросок урона</li>
+                    <li><strong>Инициатива:</strong> d20 + Ловкость</li>
+                    <li><strong>Действие:</strong> 1 действие + 1 бонусное действие + перемещение за ход</li>
+                </ul>
+            </div>
+
+            <div class="rule-card">
+                <h3>✨ Проверки навыков</h3>
+                <ul>
+                    <li><strong>d20 + модификатор</strong> vs Сложность (DC)</li>
+                    <li>DC 10 — лёгко</li>
+                    <li>DC 15 — средне</li>
+                    <li>DC 20 — сложно</li>
+                    <li>Натуральная 20 — критический успех!</li>
+                    <li>Натуральная 1 — критическая неудача!</li>
+                </ul>
+            </div>
+
+            <div class="rule-card">
+                <h3>🛡️ Класс Доспеха (AC)</h3>
+                <ul>
+                    <li>Без доспеха: 10 + ЛОВ</li>
+                    <li>Кожаный: 11 + ЛОВ</li>
+                    <li>Кольчуга: 16</li>
+                    <li>Латные: 18</li>
+                </ul>
+            </div>
+
+            <div class="rule-card">
+                <h3>🧙 Заклинания</h3>
+                <ul>
+                    <li><strong>Ячейки:</strong> 1-9 уровень</li>
+                    <li><strong>Сложность:</strong> 8 + модификатор + мастерство</li>
+                    <li><strong>Атака заклинанием:</strong> d20 + модификатор + мастерство</li>
+                    <li>ИИ Ведущий отслеживает ячейки</li>
+                </ul>
+            </div>
+
+            <div class="rule-card">
+                <h3>🗺️ Управление</h3>
+                <ul>
+                    <li><strong>ЛКМ</strong> — рисовать карту (хост)</li>
+                    <li><strong>ПКМ</strong> — двигать токен</li>
+                    <li><strong>Колёсико</strong> — зум</li>
+                    <li><strong>Ctrl+ЛКМ</strong> — панорама</li>
+                    <li><code>/roll 1d20</code> — бросить кубик</li>
+                    <li><code>/start</code> — начать кампанию</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="rules-tip">
+            <h3>💡 Совет</h3>
+            <p>ИИ Ведущий знает полные правила D&D 5e. Просто описывайте действия персонажа своими словами — Мастер сам определит, какие проверки нужны и что происходит!</p>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>⚔️ D&D Online — Бесплатная браузерная D&D платформа</p>
+    </footer>
+</body>
+</html>

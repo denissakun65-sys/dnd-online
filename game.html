@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚔️ Игра — D&D Online</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="game-body">
+    <div class="topbar">
+        <div class="topbar-left">
+            <a href="lobby.html" class="btn-tiny">← Лобби</a>
+            <span>Комната: <strong id="roomDisplay"></strong></span>
+            <button id="copyCode" class="btn-tiny" title="Копировать">📋</button>
+            <span id="connectionCount" class="conn-count">1</span>
+            <span id="modeLabel" class="mode-badge"></span>
+        </div>
+        <div class="topbar-right">
+            <button id="toggleMapTools" class="btn-tiny">🗺️ Карта</button>
+            <button id="toggleFog" class="btn-tiny">🌫️ Туман</button>
+            <a href="lobby.html" class="btn-tiny btn-danger">Выйти</a>
+        </div>
+    </div>
+
+    <div class="game-layout">
+        <div class="map-panel">
+            <canvas id="mapCanvas"></canvas>
+            <div id="mapTools" class="map-tools hidden">
+                <div class="tool-group">
+                    <button class="tool-btn active" data-tool="floor" title="Пол">⬜</button>
+                    <button class="tool-btn" data-tool="wall" title="Стена">🧱</button>
+                    <button class="tool-btn" data-tool="water" title="Вода">🌊</button>
+                    <button class="tool-btn" data-tool="lava" title="Лава">🔥</button>
+                    <button class="tool-btn" data-tool="tree" title="Дерево">🌳</button>
+                    <button class="tool-btn" data-tool="door" title="Дверь">🚪</button>
+                    <button class="tool-btn" data-tool="chest" title="Сундук">📦</button>
+                    <button class="tool-btn" data-tool="erase" title="Стереть">🧹</button>
+                </div>
+                <div class="tool-group">
+                    <button id="clearMap" class="tool-btn" title="Очистить">🗑️</button>
+                    <button id="fillFloor" class="tool-btn" title="Залить полом">⬜</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="players-list">
+                <h3>👥 Игроки</h3>
+                <div id="playersList"></div>
+            </div>
+            <div class="chat-panel">
+                <div id="chatMessages" class="chat-messages"></div>
+                <div class="chat-input-area">
+                    <input type="text" id="chatInput" placeholder="Действие или /roll 1d20..." maxlength="500">
+                    <button id="chatSend" class="btn-send">➤</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/mqtt-network.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 Играть — D&D Online</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="nav-brand">⚔️ D&D Online</a>
+        <div class="nav-links">
+            <a href="index.html">Главная</a>
+            <a href="lobby.html" class="active">🎮 Играть</a>
+            <a href="rules.html">📖 Правила</a>
+            <a href="about.html">О проекте</a>
+        </div>
+    </nav>
+
+    <main class="lobby-page">
+        <div class="lobby-container">
+            <h2>🎮 Начать игру</h2>
+            <p class="lobby-desc">Заполните данные и выберите режим</p>
+
+            <div class="lobby-form">
+                <div class="form-group">
+                    <label>Ваше имя</label>
+                    <input type="text" id="playerName" placeholder="Воин, Маг, Плут..." maxlength="20">
+                </div>
+
+                <div class="form-group">
+                    <label>Цвет токена</label>
+                    <div class="color-picker">
+                        <button class="color-btn selected" data-color="#e74c3c" style="background:#e74c3c"></button>
+                        <button class="color-btn" data-color="#3498db" style="background:#3498db"></button>
+                        <button class="color-btn" data-color="#2ecc71" style="background:#2ecc71"></button>
+                        <button class="color-btn" data-color="#f39c12" style="background:#f39c12"></button>
+                        <button class="color-btn" data-color="#9b59b6" style="background:#9b59b6"></button>
+                        <button class="color-btn" data-color="#1abc9c" style="background:#1abc9c"></button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>ИИ Провайдер</label>
+                    <select id="aiProvider">
+                        <option value="groq">Groq (быстрый, бесплатно)</option>
+                        <option value="gemini">Google Gemini (бесплатно)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>API Ключ</label>
+                    <input type="password" id="apiKey" placeholder="Вставьте ключ API...">
+                    <small>Бесплатно: <a href="https://console.groq.com/keys" target="_blank">Groq</a> или <a href="https://aistudio.google.com/apikey" target="_blank">Gemini</a></small>
+                </div>
+
+                <div class="lobby-modes">
+                    <button id="soloPlay" class="mode-card">
+                        <div class="mode-icon">⚔️</div>
+                        <h3>Играть одному</h3>
+                        <p>ИИ Ведущий + карта.<br>Работает сразу, без P2P.</p>
+                    </button>
+                    <button id="multiPlay" class="mode-card">
+                        <div class="mode-icon">👥</div>
+                        <h3>С друзьями</h3>
+                        <p>Онлайн через MQTT.<br>Введите код комнаты.</p>
+                    </button>
+                </div>
+
+                <div id="multiSection" class="multi-section hidden">
+                    <div class="form-group">
+                        <label>Код комнаты</label>
+                        <div class="room-input-group">
+                            <input type="text" id="roomCode" placeholder="Придумайте код (например: dragon)" maxlength="20">
+                            <button id="joinRoom" class="btn btn-primary">🚪 Войти</button>
+                        </div>
+                        <small>Все игроки вводят один и тот же код. Первый — становится хостом.</small>
+                    </div>
+                </div>
+            </div>
+
+            <div id="lobbyStatus" class="status"></div>
+        </div>
+    </main>
+
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/mqtt-network.js"></script>
+    <script src="js/lobby.js"></script>
+</body>
+</html>
